@@ -29,10 +29,8 @@ export class AuthService {
 
     const payload = { sub: user.user_id, email: user.email, role: user.role };
 
-    // Access Token: قصير العمر (15 دقيقة)، يُستخدم بكل طلب
     const access_token = await this.jwtService.signAsync(payload);
 
-    // Refresh Token: طويل العمر (7 أيام)، سر مختلف، يُستخدم بس لتجديد الـ Access Token
     const refresh_token = await this.jwtService.signAsync(payload, {
       secret: this.config.get<string>('JWT_REFRESH_SECRET') as any,
       expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') as any,
@@ -51,7 +49,6 @@ export class AuthService {
     };
   }
 
-  // يستقبل Refresh Token صالح، ويرجع Access Token جديد
   async refreshToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token, {
