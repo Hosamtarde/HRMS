@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: hrms_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: hrms_db
+      MYSQL_USER: hrms_user
+      MYSQL_PASSWORD: hrms_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - hrms_mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: hrms_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: hrms_user
+      PMA_PASSWORD: hrms_pass
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+
+volumes:
+  hrms_mysql_data:
