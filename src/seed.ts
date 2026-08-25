@@ -6,28 +6,38 @@ import { UserEntity } from './modules/users/user.entity';
 import { Role } from './common/enums/role.enum';
 import * as bcrypt from 'bcrypt';
 
-async function seed() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  const repo = app.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
-
-  const email = 'admin@hrms.com';
+async function seedUser(
+  repo: Repository<UserEntity>,
+  email: string,
+  password: string,
+  role: Role,
+  firstName: string,
+) {
   const existing = await repo.findOne({ where: { email } });
   if (existing) {
-    console.log('HR Admin already exists:', email);
-    await app.close();
+    console.log(`${role} already exists:`, email);
     return;
   }
 
   const user = repo.create({
-    first_name: 'HR',
-    last_name: 'Admin',
+    first_name: firstName,
+    last_name: role,
     email,
-    password: await bcrypt.hash('admin123', 10),
-    role: Role.HR_ADMIN,
+    password: await bcrypt.hash(password, 10),
+    role,
     status: true,
   });
   await repo.save(user);
-  console.log('Created HR Admin => email: admin@hrms.com | password: admin123');
+  console.log(`Created ${role} => email: ${email} | password: ${password}`);
+}
+
+async function seed() {
+  const app = await NestFactory.createApplicationContext(AppModule);
+  const repo = app.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
+
+  await seedUser(repo, 'admin@hrms.com', 'admin123', Role.HR_ADMIN, 'HR');
+  await seedUser(repo, 'employee@hrms.com', 'employee123', Role.EMPLOYEE, 'Test');
+
   await app.close();
 }
 seed();
