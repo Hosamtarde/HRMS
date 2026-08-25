@@ -8,28 +8,24 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // POST /auth/login
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
 
-  // POST /auth/refresh — يرجع Access Token جديد
   @Post('refresh')
   @HttpCode(200)
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto.refresh_token);
   }
 
-  // GET /auth/me — محمي
   @Get('me')
   @UseGuards(JwtAuthGuard)
   me() {
     return { message: 'You are authenticated!' };
   }
 
-  // POST /auth/logout — محمي
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
