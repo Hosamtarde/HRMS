@@ -1,98 +1,201 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+<div align="center">
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<img src="docs/screenshots/logo.png" width="110" alt="Palestine Polytechnic University" />
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+# Human Resource Management System (HRMS)
 
-## Description
+**Graduation Project — Palestine Polytechnic University**
+College of Information Technology and Computer Engineering · Department of IT and Computer Science
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 
-## Project setup
+[![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
+[![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
 
-```bash
-$ npm install
+</div>
+
+---
+
+## 📖 عن المشروع
+
+**HRMS** هو نظام إدارة موارد بشرية حديث، مصمم ليكون بديلاً بسيطاً وفعّالاً وبأسعار معقولة عن الأنظمة العالمية المعقدة (Workday, SAP SuccessFactors) للشركات الصغيرة والمتوسطة.
+
+النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، تقييم الأداء، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
+
+---
+
+## 👥 فريق العمل
+
+| الاسم | الرقم الجامعي | الدور |
+|---|---|---|
+| **Hosam Tarade** | 231102 | Backend Developer |
+| **Mohammed Tarade** | 231101 | Backend Developer |
+| **Bahaa Zahedah** | 231114 | Backend Developer |
+
+**المشرف:** Dr. Hani Salah
+
+---
+
+## 🖼️ لمحة عن النظام
+
+<div align="center">
+<img src="docs/screenshots/dashboard-mockup.png" width="700" alt="Dashboard mockup" />
+<p><em>تصميم واجهة لوحة التحكم (Dashboard) — من مستند التصميم</em></p>
+</div>
+
+---
+
+## 🏗️ التقنيات المستخدمة (Tech Stack)
+
+| الطبقة | التقنية |
+|---|---|
+| **Backend** | NestJS + TypeScript |
+| **Database** | MySQL + TypeORM |
+| **Authentication** | JWT (Access + Refresh Tokens) |
+| **Authorization** | Role-Based Access Control (RBAC) |
+| **Containerization** | Docker + Docker Compose |
+| **API Testing** | Postman |
+| **Frontend** *(مخطط له)* | ReactJS + Bootstrap |
+
+---
+
+## 👤 أدوار المستخدمين
+
+النظام بيدعم 4 أدوار بصلاحيات متدرجة:
+
+```
+Applicant  →  Employee  →  Manager  →  HR Admin
 ```
 
-## Compile and run the project
+- **Applicant** — يقدّم على وظائف ويتابع حالة طلبه
+- **Employee** — يدير بياناته الشخصية، الحضور، الطلبات، والمهام
+- **Manager** — كل صلاحيات Employee + الموافقة على الطلبات ومتابعة الفريق
+- **HR Admin** — صلاحية كاملة على النظام (إدارة الموظفين، الرواتب، التوظيف، الأدوار)
+
+---
+
+## 🗄️ تصميم قاعدة البيانات (ERD)
+
+<div align="center">
+<img src="docs/screenshots/erd.png" width="600" alt="Database ERD" />
+</div>
+
+---
+
+## 📦 الموديولات (حسب خطة العمل)
+
+- [x] **Setup** — NestJS, MySQL, TypeORM, Docker, Auth Base
+- [x] **Authentication & Users** — JWT, Refresh Tokens, Guards, Roles
+- [x] **Department Management** — CRUD + RBAC
+- [ ] Attendance Management
+- [ ] Employee Management
+- [ ] Requests (Leave / Loan / Permission)
+- [ ] Recruitment
+- [ ] Task Management
+- [ ] Payroll Management
+- [ ] Performance Evaluation
+- [ ] Notifications
+- [ ] Reports & Analytics
+- [ ] RBAC — مراجعة نهائية شاملة
+
+---
+
+## 🚀 التشغيل محلياً
+
+### المتطلبات
+- [Node.js](https://nodejs.org/) (v18 أو أحدث)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### الخطوات
 
 ```bash
-# development
-$ npm run start
+# 1. استنساخ المشروع
+git clone https://github.com/Hosamtarde/HRMS.git
+cd HRMS/backend
 
-# watch mode
-$ npm run start:dev
+# 2. تركيب الحزم
+npm install
 
-# production mode
-$ npm run start:prod
+# 3. إعداد متغيرات البيئة
+cp .env.example .env
+
+# 4. تشغيل قاعدة البيانات (MySQL + phpMyAdmin)
+docker compose up -d
+
+# 5. إضافة مستخدم تجريبي (HR Admin)
+npm run seed
+
+# 6. تشغيل السيرفر
+npm run start:dev
 ```
 
-## Run tests
+السيرفر رح يشتغل على: **`http://localhost:3000`**
+phpMyAdmin رح يكون متاح على: **`http://localhost:8080`**
 
-```bash
-# unit tests
-$ npm run test
+---
 
-# e2e tests
-$ npm run test:e2e
+## 🔑 نقاط الوصول (API Endpoints)
 
-# test coverage
-$ npm run test:cov
+### Authentication
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/auth/login` | تسجيل الدخول | عام |
+| `POST` | `/auth/refresh` | تجديد الـ Access Token | عام |
+| `GET` | `/auth/me` | بيانات المستخدم الحالي | 🔒 مسجل دخول |
+| `POST` | `/auth/logout` | تسجيل الخروج | 🔒 مسجل دخول |
+
+### Departments
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/departments` | عرض كل الأقسام | 🔒 مسجل دخول |
+| `GET` | `/departments/:id` | عرض قسم واحد | 🔒 مسجل دخول |
+| `POST` | `/departments` | إضافة قسم | 🔒 HR Admin فقط |
+| `PUT` | `/departments/:id` | تعديل قسم | 🔒 HR Admin فقط |
+| `DELETE` | `/departments/:id` | حذف قسم | 🔒 HR Admin فقط |
+
+---
+
+## 🌳 هيكل المشروع (Backend)
+
+```
+src/
+├── common/
+│   ├── decorators/     # @Roles() وغيرها
+│   ├── enums/          # Role enum
+│   └── guards/         # JwtAuthGuard, RolesGuard
+├── modules/
+│   ├── auth/            # تسجيل الدخول، JWT، Guards
+│   ├── users/           # إدارة بيانات المستخدمين
+│   └── departments/      # إدارة الأقسام
+├── app.module.ts
+├── main.ts
+└── seed.ts              # بيانات تجريبية أولية
 ```
 
-## Deployment
+---
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## 🔄 أسلوب العمل الجماعي (Git Workflow)
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+كل موديول بيتطور على فرع (branch) مستقل، ثم يُفتح Pull Request للمراجعة قبل الدمج على `main`:
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+main
+ └── feature/auth          → PR #1 → merged
+ └── feature/departments   → PR #2 → merged
+ └── feature/attendance    → قيد التطوير
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+نظام تسمية الـ Commits يتبع [Conventional Commits](https://www.conventionalcommits.org/):
+`feat:` ميزة جديدة · `fix:` إصلاح · `chore:` إعدادات · `docs:` توثيق
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+<div align="center">
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+**Palestine Polytechnic University © 2026**
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+</div>
