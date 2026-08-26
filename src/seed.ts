@@ -21,7 +21,7 @@ async function seedUser(
 
   const user = repo.create({
     first_name: firstName,
-    last_name: lastName,
+    last_name: role,
     email,
     password: await bcrypt.hash(password, 10),
     role,
