@@ -20,7 +20,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') === 'development',
+        synchronize: false,
       }),
     }),
     UsersModule,
