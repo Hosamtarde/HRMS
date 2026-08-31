@@ -12,6 +12,7 @@ College of Information Technology and Computer Engineering · Department of IT a
 [![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+[![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
 [![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
@@ -54,11 +55,13 @@ College of Information Technology and Computer Engineering · Department of IT a
 | الطبقة | التقنية |
 |---|---|
 | **Backend** | NestJS + TypeScript |
-| **Database** | MySQL + TypeORM |
+| **Database** | MySQL + TypeORM (Migrations) |
 | **Authentication** | JWT (Access + Refresh Tokens) |
 | **Authorization** | Role-Based Access Control (RBAC) |
+| **API Documentation** | Swagger / OpenAPI |
+| **Security** | Helmet, Rate Limiting (Throttler) |
 | **Containerization** | Docker + Docker Compose |
-| **API Testing** | Postman |
+| **API Testing** | Postman + Swagger UI |
 | **Frontend** *(مخطط له)* | ReactJS + Bootstrap |
 
 ---
@@ -104,6 +107,23 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 
 ---
 
+## 🛡️ ممارسات الجودة والأمان (Best Practices)
+
+بالإضافة للموديولات الأساسية، تم تطبيق مجموعة من الممارسات الاحترافية على مستوى المشروع كامل:
+
+| الميزة | الوصف |
+|---|---|
+| **TypeORM Migrations** | تتبع تغييرات قاعدة البيانات بملفات مرقّمة بدل الاعتماد على `synchronize` التلقائي |
+| **Global Exception Filter** | كل الأخطاء ترجع بشكل موحّد: `statusCode`, `message`, `path`, `timestamp` |
+| **Global Validation Pipe** | تحقق تلقائي وصارم من كل البيانات الواردة عبر DTOs |
+| **Response Interceptor** | كل الردود الناجحة موحّدة الشكل: `{ success, data, timestamp }` |
+| **Swagger / OpenAPI** | توثيق تفاعلي كامل لكل الـ Endpoints، قابل للتجربة مباشرة من المتصفح |
+| **Helmet** | رؤوس أمان HTTP قياسية لحماية من الهجمات الشائعة |
+| **Rate Limiting** | حد عام 20 طلب/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
+| **RBAC** | حماية كل Endpoint حساس بالدور المناسب عبر `@Roles()` + `RolesGuard` |
+
+---
+
 ## 🚀 التشغيل محلياً
 
 ### المتطلبات
@@ -126,24 +146,56 @@ cp .env.example .env
 # 4. تشغيل قاعدة البيانات (MySQL + phpMyAdmin)
 docker compose up -d
 
-# 5. إضافة مستخدم تجريبي (HR Admin)
+# 5. تشغيل الـ Migrations (بناء الجداول)
+npm run migration:run
+
+# 6. إضافة مستخدمين تجريبيين (HR Admin + Employee)
 npm run seed
 
-# 6. تشغيل السيرفر
+# 7. تشغيل السيرفر
 npm run start:dev
 ```
 
-السيرفر رح يشتغل على: **`http://localhost:3000`**
-phpMyAdmin رح يكون متاح على: **`http://localhost:8080`**
+| الخدمة | الرابط |
+|---|---|
+| **API** | `http://localhost:3000` |
+| **توثيق Swagger التفاعلي** | `http://localhost:3000/api/docs` |
+| **phpMyAdmin** | `http://localhost:8080` |
+
+### 🔑 حسابات تجريبية (بعد `npm run seed`)
+
+| الدور | Email | Password |
+|---|---|---|
+| HR Admin | `admin@hrms.com` | `admin123` |
+| Employee | `employee@hrms.com` | `employee123` |
+
+---
+
+## 🗃️ التعامل مع قاعدة البيانات (Migrations)
+
+المشروع يستخدم **TypeORM Migrations** بدل التوليد التلقائي للجداول. أي تغيير على شكل قاعدة البيانات (جدول جديد، عمود جديد...) يجب أن يمر بهالخطوات:
+
+```bash
+# بعد إضافة/تعديل أي Entity
+npm run migration:generate -- src/migrations/اسم-وصفي-للتغيير
+
+# لتطبيق الـ Migration على قاعدة البيانات
+npm run migration:run
+
+# للتراجع عن آخر Migration (عند الحاجة)
+npm run migration:revert
+```
 
 ---
 
 ## 🔑 نقاط الوصول (API Endpoints)
 
+> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع.
+
 ### Authentication
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
-| `POST` | `/auth/login` | تسجيل الدخول | عام |
+| `POST` | `/auth/login` | تسجيل الدخول *(محدود بـ 5 محاولات/دقيقة)* | عام |
 | `POST` | `/auth/refresh` | تجديد الـ Access Token | عام |
 | `GET` | `/auth/me` | بيانات المستخدم الحالي | 🔒 مسجل دخول |
 | `POST` | `/auth/logout` | تسجيل الخروج | 🔒 مسجل دخول |
@@ -166,14 +218,19 @@ src/
 ├── common/
 │   ├── decorators/     # @Roles() وغيرها
 │   ├── enums/          # Role enum
-│   └── guards/         # JwtAuthGuard, RolesGuard
+│   ├── filters/         # HttpExceptionFilter (شكل موحّد للأخطاء)
+│   ├── guards/          # JwtAuthGuard, RolesGuard
+│   └── interceptors/    # ResponseInterceptor (شكل موحّد للردود)
+├── config/
+│   └── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
+├── migrations/           # ملفات Migration مرقّمة بالتاريخ
 ├── modules/
-│   ├── auth/            # تسجيل الدخول، JWT، Guards
-│   ├── users/           # إدارة بيانات المستخدمين
-│   └── departments/      # إدارة الأقسام
+│   ├── auth/             # تسجيل الدخول، JWT، Rate Limiting
+│   ├── users/             # إدارة بيانات المستخدمين
+│   └── departments/        # إدارة الأقسام
 ├── app.module.ts
-├── main.ts
-└── seed.ts              # بيانات تجريبية أولية
+├── main.ts                # Helmet, Validation, Swagger, Filters, Interceptors
+└── seed.ts                # بيانات تجريبية أولية
 ```
 
 ---
@@ -186,6 +243,7 @@ src/
 main
  └── feature/auth          → PR #1 → merged
  └── feature/departments   → PR #2 → merged
+ └── chore/migrations      → PR #3 → merged
  └── feature/attendance    → قيد التطوير
 ```
 
