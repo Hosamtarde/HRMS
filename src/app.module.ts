@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { EmployeesModule } from './modules/employees/employees.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
     AuthModule,
     DepartmentsModule,
     AttendanceModule,
+    EmployeesModule,
   ],
   controllers: [AppController],
   providers: [
@@ -44,6 +46,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    
   ],
 })
 export class AppModule {}
