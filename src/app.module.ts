@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 
 @Module({
   imports: [
@@ -25,7 +26,6 @@ import { DepartmentsModule } from './modules/departments/departments.module';
         synchronize: false,
       }),
     }),
-    // الحد الافتراضي العام: 20 طلب كل دقيقة لكل IP
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
@@ -35,6 +35,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
     UsersModule,
     AuthModule,
     DepartmentsModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [
