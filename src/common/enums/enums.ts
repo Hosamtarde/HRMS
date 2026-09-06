@@ -17,3 +17,23 @@ export enum EmploymentType {
   PART_TIME = 'part_time',
   CONTRACT = 'contract',
 }
+
+export enum RequestType {
+  LEAVE = 'leave',
+  LOAN = 'loan',
+  PERMISSION = 'permission',
+  CUSTOM = 'custom',
+}
+
+export enum RequestStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
+export enum LeaveType {
+  ANNUAL = 'annual',
+  SICK = 'sick',
+  EMERGENCY = 'emergency',
+  UNPAID = 'unpaid',
+}
