@@ -94,9 +94,9 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 - [x] **Setup** — NestJS, MySQL, TypeORM, Docker, Auth Base
 - [x] **Authentication & Users** — JWT, Refresh Tokens, Guards, Roles
 - [x] **Department Management** — CRUD + RBAC
-- [ ] Attendance Management
-- [ ] Employee Management
-- [ ] Requests (Leave / Loan / Permission)
+- [x] **Attendance Management** — Check-in/Check-out, حساب ساعات العمل تلقائياً، منع التكرار اليومي
+- [x] **Employee Management** — إنشاء موظف (User + Profile) بعملية Transaction واحدة، Soft Delete
+- [x] **Requests** — جدول موحّد لطلبات (Leave/Loan/Permission/Custom) بسير موافقة كامل
 - [ ] Recruitment
 - [ ] Task Management
 - [ ] Payroll Management
@@ -117,10 +117,13 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | **Global Exception Filter** | كل الأخطاء ترجع بشكل موحّد: `statusCode`, `message`, `path`, `timestamp` |
 | **Global Validation Pipe** | تحقق تلقائي وصارم من كل البيانات الواردة عبر DTOs |
 | **Response Interceptor** | كل الردود الناجحة موحّدة الشكل: `{ success, data, timestamp }` |
-| **Swagger / OpenAPI** | توثيق تفاعلي كامل لكل الـ Endpoints، قابل للتجربة مباشرة من المتصفح |
+| **Swagger / OpenAPI** | توثيق تفاعلي كامل لكل الـ Endpoints |
 | **Helmet** | رؤوس أمان HTTP قياسية لحماية من الهجمات الشائعة |
-| **Rate Limiting** | حد عام 20 طلب/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
+| **Rate Limiting** | حد عام 10-20 طلب/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
 | **RBAC** | حماية كل Endpoint حساس بالدور المناسب عبر `@Roles()` + `RolesGuard` |
+| **Transactional Operations** | عمليات حساسة (مثل إنشاء موظف) تتم ضمن Database Transaction لضمان تناسق البيانات |
+| **Soft Delete** | تعطيل الحسابات بدل الحذف الفعلي، للحفاظ على البيانات التاريخية المرتبطة |
+| **Ownership-based Filtering** | كل مستخدم يشوف بياناته الخاصة بس (ما لم يكن Manager/HR Admin) |
 
 ---
 
@@ -173,7 +176,7 @@ npm run start:dev
 
 ## 🗃️ التعامل مع قاعدة البيانات (Migrations)
 
-المشروع يستخدم **TypeORM Migrations** بدل التوليد التلقائي للجداول. أي تغيير على شكل قاعدة البيانات (جدول جديد، عمود جديد...) يجب أن يمر بهالخطوات:
+المشروع يستخدم **TypeORM Migrations** بدل التوليد التلقائي للجداول. أي تغيير على شكل قاعدة البيانات يجب أن يمر بهالخطوات:
 
 ```bash
 # بعد إضافة/تعديل أي Entity
@@ -209,6 +212,31 @@ npm run migration:revert
 | `PUT` | `/departments/:id` | تعديل قسم | 🔒 HR Admin فقط |
 | `DELETE` | `/departments/:id` | حذف قسم | 🔒 HR Admin فقط |
 
+### Attendance
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/attendance/check-in` | تسجيل حضور (مرة واحدة يومياً) | 🔒 مسجل دخول |
+| `POST` | `/attendance/check-out` | تسجيل انصراف + حساب ساعات العمل | 🔒 مسجل دخول |
+| `GET` | `/attendance` | عرض كل سجلات الحضور | 🔒 Manager / HR Admin |
+| `GET` | `/attendance/employee/:id` | سجلات حضور موظف محدد | 🔒 Manager / HR Admin |
+
+### Employees
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/employees` | عرض كل الموظفين | 🔒 HR Admin فقط |
+| `GET` | `/employees/:id` | عرض موظف واحد | 🔒 HR Admin فقط |
+| `POST` | `/employees` | إنشاء موظف جديد (User + Profile) | 🔒 HR Admin فقط |
+| `PUT` | `/employees/:id` | تعديل بيانات موظف | 🔒 HR Admin فقط |
+| `DELETE` | `/employees/:id` | تعطيل حساب موظف (Soft Delete) | 🔒 HR Admin فقط |
+
+### Requests (Leave / Loan / Permission / Custom)
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/requests` | تقديم طلب جديد | 🔒 مسجل دخول |
+| `GET` | `/requests` | عرض الطلبات (الخاصة بالمستخدم، أو الكل لو Manager/HR) | 🔒 مسجل دخول |
+| `GET` | `/requests/:id` | عرض طلب واحد | 🔒 مسجل دخول (صاحب الطلب أو Manager/HR) |
+| `PUT` | `/requests/:id/review` | الموافقة أو الرفض | 🔒 Manager / HR Admin |
+
 ---
 
 ## 🌳 هيكل المشروع (Backend)
@@ -216,21 +244,24 @@ npm run migration:revert
 ```
 src/
 ├── common/
-│   ├── decorators/     # @Roles() وغيرها
-│   ├── enums/          # Role enum
-│   ├── filters/         # HttpExceptionFilter (شكل موحّد للأخطاء)
-│   ├── guards/          # JwtAuthGuard, RolesGuard
-│   └── interceptors/    # ResponseInterceptor (شكل موحّد للردود)
+│   ├── decorators/      # @Roles(), @CurrentUser()
+│   ├── enums/           # كل الـ enums بملف واحد مركزي (Role, RequestType...)
+│   ├── filters/          # HttpExceptionFilter (شكل موحّد للأخطاء)
+│   ├── guards/           # JwtAuthGuard, RolesGuard
+│   └── interceptors/     # ResponseInterceptor (شكل موحّد للردود)
 ├── config/
-│   └── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
-├── migrations/           # ملفات Migration مرقّمة بالتاريخ
+│   └── data-source.ts    # إعدادات TypeORM CLI (للـ Migrations)
+├── migrations/            # ملفات Migration مرقّمة بالتاريخ
 ├── modules/
-│   ├── auth/             # تسجيل الدخول، JWT، Rate Limiting
-│   ├── users/             # إدارة بيانات المستخدمين
-│   └── departments/        # إدارة الأقسام
+│   ├── auth/               # تسجيل الدخول، JWT، Rate Limiting
+│   ├── users/               # إدارة بيانات المستخدمين
+│   ├── departments/          # إدارة الأقسام
+│   ├── attendance/            # الحضور والانصراف
+│   ├── employees/              # إدارة الموظفين (Transaction + Soft Delete)
+│   └── requests/                # طلبات الإجازة/السلفة/الاستئذان
 ├── app.module.ts
-├── main.ts                # Helmet, Validation, Swagger, Filters, Interceptors
-└── seed.ts                # بيانات تجريبية أولية
+├── main.ts                  # Helmet, Validation, Swagger, Filters, Interceptors
+└── seed.ts                  # بيانات تجريبية أولية
 ```
 
 ---
@@ -243,12 +274,14 @@ src/
 main
  └── feature/auth          → PR #1 → merged
  └── feature/departments   → PR #2 → merged
- └── chore/migrations      → PR #3 → merged
- └── feature/attendance    → قيد التطوير
+ └── feature/attendance    → PR #4 → merged
+ └── feature/employees     → PR #5 → merged
+ └── feature/requests      → PR #6 → merged
+ └── (الموديولات القادمة)
 ```
 
 نظام تسمية الـ Commits يتبع [Conventional Commits](https://www.conventionalcommits.org/):
-`feat:` ميزة جديدة · `fix:` إصلاح · `chore:` إعدادات · `docs:` توثيق
+`feat:` ميزة جديدة · `fix:` إصلاح · `chore:` إعدادات · `docs:` توثيق · `test:` اختبار موثّق
 
 ---
 
