@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { EmployeesModule } from './modules/employees/employees.module';
+import { RequestsModule } from './modules/requests/requests.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
     DepartmentsModule,
     AttendanceModule,
     EmployeesModule,
+    RequestsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -46,6 +48,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    
     
   ],
 })
