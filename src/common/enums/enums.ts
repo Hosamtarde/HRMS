@@ -37,3 +37,11 @@ export enum LeaveType {
   EMERGENCY = 'emergency',
   UNPAID = 'unpaid',
 }
+
+export enum RecruitmentStatus {
+  PENDING = 'pending',
+  SHORTLISTED = 'shortlisted',
+  INTERVIEW_SCHEDULED = 'interview_scheduled',
+  ACCEPTED = 'accepted',
+  REJECTED = 'rejected',
+}
