@@ -37,12 +37,15 @@ export class RecruitmentController {
           callback(null, uniqueName);
         },
       }),
-      fileFilter: (req, file, callback) => {
-        if (file.mimetype !== 'application/pdf') {
-          return callback(new BadRequestException('Only PDF files are allowed'), false);
-        }
-        callback(null, true);
-      },
+    fileFilter: (req, file, callback) => {
+    const isPdfMimetype = file.mimetype === 'application/pdf';
+    const isPdfExtension = file.originalname.toLowerCase().endsWith('.pdf');
+
+    if (!isPdfMimetype && !isPdfExtension) {
+        return callback(new BadRequestException('Only PDF files are allowed'), false);
+    }
+    callback(null, true);
+    },
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
