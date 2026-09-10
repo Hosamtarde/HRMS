@@ -11,6 +11,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { RequestsModule } from './modules/requests/requests.module';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { RequestsModule } from './modules/requests/requests.module';
     AttendanceModule,
     EmployeesModule,
     RequestsModule,
+    RecruitmentModule,
   ],
   controllers: [AppController],
   providers: [
@@ -48,8 +50,6 @@ import { RequestsModule } from './modules/requests/requests.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
-    
-    
   ],
 })
 export class AppModule {}
