@@ -97,8 +97,8 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 - [x] **Attendance Management** — Check-in/Check-out, حساب ساعات العمل تلقائياً، منع التكرار اليومي
 - [x] **Employee Management** — إنشاء موظف (User + Profile) بعملية Transaction واحدة، Soft Delete
 - [x] **Requests** — جدول موحّد لطلبات (Leave/Loan/Permission/Custom) بسير موافقة كامل
-- [ ] Recruitment
-- [ ] Task Management
+- [x] Recruitment
+- [x] Task Management
 - [ ] Payroll Management
 - [ ] Performance Evaluation
 - [ ] Notifications
