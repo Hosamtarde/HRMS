@@ -12,6 +12,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { RequestsModule } from './modules/requests/requests.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RecruitmentModule } from './modules/recruitment/recruitment.module';
     EmployeesModule,
     RequestsModule,
     RecruitmentModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [
