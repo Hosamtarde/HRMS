@@ -45,3 +45,15 @@ export enum RecruitmentStatus {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
 }
+
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+export enum TaskStatus {
+  TODO = 'to-do',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+}
