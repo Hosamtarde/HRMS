@@ -14,6 +14,7 @@ College of Information Technology and Computer Engineering · Department of IT a
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
+[![Progress](https://img.shields.io/badge/modules-8%2F12%20completed-brightgreen?style=flat-square)]()
 [![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
 
@@ -25,7 +26,7 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 **HRMS** هو نظام إدارة موارد بشرية حديث، مصمم ليكون بديلاً بسيطاً وفعّالاً وبأسعار معقولة عن الأنظمة العالمية المعقدة (Workday, SAP SuccessFactors) للشركات الصغيرة والمتوسطة.
 
-النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، تقييم الأداء، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
+النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، المهام، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
 
 ---
 
@@ -59,9 +60,10 @@ College of Information Technology and Computer Engineering · Department of IT a
 | **Authentication** | JWT (Access + Refresh Tokens) |
 | **Authorization** | Role-Based Access Control (RBAC) |
 | **API Documentation** | Swagger / OpenAPI |
+| **File Uploads** | Multer (CV uploads with type/size validation) |
 | **Security** | Helmet, Rate Limiting (Throttler) |
 | **Containerization** | Docker + Docker Compose |
-| **API Testing** | Postman + Swagger UI |
+| **API Testing** | Postman |
 | **Frontend** *(مخطط له)* | ReactJS + Bootstrap |
 
 ---
@@ -76,7 +78,7 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 
 - **Applicant** — يقدّم على وظائف ويتابع حالة طلبه
 - **Employee** — يدير بياناته الشخصية، الحضور، الطلبات، والمهام
-- **Manager** — كل صلاحيات Employee + الموافقة على الطلبات ومتابعة الفريق
+- **Manager** — كل صلاحيات Employee + الموافقة على الطلبات وإدارة المهام
 - **HR Admin** — صلاحية كاملة على النظام (إدارة الموظفين، الرواتب، التوظيف، الأدوار)
 
 ---
@@ -94,12 +96,12 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 - [x] **Setup** — NestJS, MySQL, TypeORM, Docker, Auth Base
 - [x] **Authentication & Users** — JWT, Refresh Tokens, Guards, Roles
 - [x] **Department Management** — CRUD + RBAC
-- [x] **Attendance Management** — Check-in/Check-out, حساب ساعات العمل تلقائياً، منع التكرار اليومي
+- [x] **Attendance Management** — Check-in/Check-out، حساب ساعات العمل تلقائياً، منع التكرار اليومي
 - [x] **Employee Management** — إنشاء موظف (User + Profile) بعملية Transaction واحدة، Soft Delete
 - [x] **Requests** — جدول موحّد لطلبات (Leave/Loan/Permission/Custom) بسير موافقة كامل
-- [x] Recruitment
-- [x] Task Management
-- [ ] Payroll Management
+- [x] **Recruitment** — تقديم عام بدون تسجيل + رفع ملفات CV مع تحقق من النوع والحجم
+- [x] **Task Management** — علاقة Many-to-Many، تعيين متعدد، تتبع نسبة إنجاز لكل موظف
+- [x] **Payroll Management** — احتساب رواتب تلقائي عبر ربط بيانات من 3 موديولات
 - [ ] Performance Evaluation
 - [ ] Notifications
 - [ ] Reports & Analytics
@@ -119,11 +121,12 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | **Response Interceptor** | كل الردود الناجحة موحّدة الشكل: `{ success, data, timestamp }` |
 | **Swagger / OpenAPI** | توثيق تفاعلي كامل لكل الـ Endpoints |
 | **Helmet** | رؤوس أمان HTTP قياسية لحماية من الهجمات الشائعة |
-| **Rate Limiting** | حد عام 10-20 طلب/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
+| **Rate Limiting** | حد عام 10 طلبات/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
 | **RBAC** | حماية كل Endpoint حساس بالدور المناسب عبر `@Roles()` + `RolesGuard` |
-| **Transactional Operations** | عمليات حساسة (مثل إنشاء موظف) تتم ضمن Database Transaction لضمان تناسق البيانات |
+| **Transactional Operations** | عمليات حساسة (إنشاء موظف، تعيين مهمة لعدة موظفين) تتم ضمن Database Transaction |
 | **Soft Delete** | تعطيل الحسابات بدل الحذف الفعلي، للحفاظ على البيانات التاريخية المرتبطة |
 | **Ownership-based Filtering** | كل مستخدم يشوف بياناته الخاصة بس (ما لم يكن Manager/HR Admin) |
+| **Cross-Module Integration** | موديول Payroll يقرأ من Employees و Requests لحساب الراتب الصافي تلقائياً |
 
 ---
 
@@ -176,7 +179,7 @@ npm run start:dev
 
 ## 🗃️ التعامل مع قاعدة البيانات (Migrations)
 
-المشروع يستخدم **TypeORM Migrations** بدل التوليد التلقائي للجداول. أي تغيير على شكل قاعدة البيانات يجب أن يمر بهالخطوات:
+المشروع يستخدم **TypeORM Migrations** بدل التوليد التلقائي للجداول:
 
 ```bash
 # بعد إضافة/تعديل أي Entity
@@ -208,9 +211,9 @@ npm run migration:revert
 |---|---|---|---|
 | `GET` | `/departments` | عرض كل الأقسام | 🔒 مسجل دخول |
 | `GET` | `/departments/:id` | عرض قسم واحد | 🔒 مسجل دخول |
-| `POST` | `/departments` | إضافة قسم | 🔒 HR Admin فقط |
-| `PUT` | `/departments/:id` | تعديل قسم | 🔒 HR Admin فقط |
-| `DELETE` | `/departments/:id` | حذف قسم | 🔒 HR Admin فقط |
+| `POST` | `/departments` | إضافة قسم | 🔒 HR Admin |
+| `PUT` | `/departments/:id` | تعديل قسم | 🔒 HR Admin |
+| `DELETE` | `/departments/:id` | حذف قسم | 🔒 HR Admin |
 
 ### Attendance
 | Method | Endpoint | الوصف | الحماية |
@@ -223,19 +226,44 @@ npm run migration:revert
 ### Employees
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
-| `GET` | `/employees` | عرض كل الموظفين | 🔒 HR Admin فقط |
-| `GET` | `/employees/:id` | عرض موظف واحد | 🔒 HR Admin فقط |
-| `POST` | `/employees` | إنشاء موظف جديد (User + Profile) | 🔒 HR Admin فقط |
-| `PUT` | `/employees/:id` | تعديل بيانات موظف | 🔒 HR Admin فقط |
-| `DELETE` | `/employees/:id` | تعطيل حساب موظف (Soft Delete) | 🔒 HR Admin فقط |
+| `GET` | `/employees` | عرض كل الموظفين | 🔒 HR Admin |
+| `GET` | `/employees/:id` | عرض موظف واحد | 🔒 HR Admin |
+| `POST` | `/employees` | إنشاء موظف جديد (User + Profile) | 🔒 HR Admin |
+| `PUT` | `/employees/:id` | تعديل بيانات موظف | 🔒 HR Admin |
+| `DELETE` | `/employees/:id` | تعطيل حساب موظف (Soft Delete) | 🔒 HR Admin |
 
 ### Requests (Leave / Loan / Permission / Custom)
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
 | `POST` | `/requests` | تقديم طلب جديد | 🔒 مسجل دخول |
-| `GET` | `/requests` | عرض الطلبات (الخاصة بالمستخدم، أو الكل لو Manager/HR) | 🔒 مسجل دخول |
-| `GET` | `/requests/:id` | عرض طلب واحد | 🔒 مسجل دخول (صاحب الطلب أو Manager/HR) |
+| `GET` | `/requests` | عرض الطلبات (الخاصة بالمستخدم، أو الكل لـ Manager/HR) | 🔒 مسجل دخول |
+| `GET` | `/requests/:id` | عرض طلب واحد | 🔒 صاحب الطلب أو Manager/HR |
 | `PUT` | `/requests/:id/review` | الموافقة أو الرفض | 🔒 Manager / HR Admin |
+
+### Recruitment
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/recruitment/apply` | تقديم طلب توظيف + رفع CV | 🌐 **عام (بدون تسجيل)** |
+| `GET` | `/recruitment` | عرض كل طلبات التوظيف | 🔒 HR Admin |
+| `PUT` | `/recruitment/:id/status` | تحديث حالة الطلب | 🔒 HR Admin |
+
+### Tasks
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/tasks` | إنشاء مهمة وتعيينها لعدة موظفين | 🔒 Manager / HR Admin |
+| `GET` | `/tasks` | عرض المهام (مهام المستخدم، أو الكل لـ Manager/HR) | 🔒 مسجل دخول |
+| `GET` | `/tasks/:id` | عرض مهمة واحدة | 🔒 مسجل دخول |
+| `PUT` | `/tasks/:id` | تعديل تفاصيل المهمة | 🔒 Manager / HR Admin |
+| `PUT` | `/tasks/:id/status` | تحديث حالة المهمة | 🔒 Manager / HR Admin |
+| `PUT` | `/tasks/:id/completion` | تحديث نسبة إنجاز الموظف نفسه | 🔒 الموظف المكلّف |
+| `DELETE` | `/tasks/:id` | حذف مهمة | 🔒 Manager / HR Admin |
+
+### Payroll
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `POST` | `/payroll/generate` | توليد راتب (لموظف واحد أو لكل الموظفين) | 🔒 HR Admin |
+| `GET` | `/payroll` | عرض كل سجلات الرواتب | 🔒 HR Admin |
+| `GET` | `/payroll/employee/:id` | سجلات راتب موظف محدد | 🔒 HR Admin |
 
 ---
 
@@ -245,7 +273,7 @@ npm run migration:revert
 src/
 ├── common/
 │   ├── decorators/      # @Roles(), @CurrentUser()
-│   ├── enums/           # كل الـ enums بملف واحد مركزي (Role, RequestType...)
+│   ├── enums/           # كل الـ enums بملف واحد مركزي
 │   ├── filters/          # HttpExceptionFilter (شكل موحّد للأخطاء)
 │   ├── guards/           # JwtAuthGuard, RolesGuard
 │   └── interceptors/     # ResponseInterceptor (شكل موحّد للردود)
@@ -258,7 +286,10 @@ src/
 │   ├── departments/          # إدارة الأقسام
 │   ├── attendance/            # الحضور والانصراف
 │   ├── employees/              # إدارة الموظفين (Transaction + Soft Delete)
-│   └── requests/                # طلبات الإجازة/السلفة/الاستئذان
+│   ├── requests/                # طلبات الإجازة/السلفة/الاستئذان
+│   ├── recruitment/              # التوظيف ورفع السير الذاتية
+│   ├── tasks/                     # إدارة المهام (Many-to-Many)
+│   └── payroll/                    # احتساب الرواتب
 ├── app.module.ts
 ├── main.ts                  # Helmet, Validation, Swagger, Filters, Interceptors
 └── seed.ts                  # بيانات تجريبية أولية
@@ -272,11 +303,14 @@ src/
 
 ```
 main
- └── feature/auth          → PR #1 → merged
- └── feature/departments   → PR #2 → merged
- └── feature/attendance    → PR #4 → merged
- └── feature/employees     → PR #5 → merged
- └── feature/requests      → PR #6 → merged
+ └── feature/auth          → merged
+ └── feature/departments   → merged
+ └── feature/attendance    → merged
+ └── feature/employees     → merged
+ └── feature/requests      → merged
+ └── feature/recruitment   → merged
+ └── feature/tasks         → merged
+ └── feature/payroll       → merged
  └── (الموديولات القادمة)
 ```
 
