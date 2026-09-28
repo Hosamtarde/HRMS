@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   ParseIntPipe,
   Post,
   Put,
@@ -21,6 +22,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role, RecruitmentStatus } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @Controller('recruitment')
 export class RecruitmentController {
@@ -60,8 +62,8 @@ export class RecruitmentController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.HR_ADMIN)
-  findAll() {
-    return this.recruitmentService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.recruitmentService.findAll(paginationDto);
   }
 
   @ApiBearerAuth()

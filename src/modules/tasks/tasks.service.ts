@@ -6,6 +6,10 @@ import { AssignedTaskEntity } from './assigned-task.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskStatus, Role } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+
 
 @Injectable()
 export class TasksService {
@@ -43,18 +47,34 @@ export class TasksService {
   }
 
 
-  async findAll(userId: number, role: Role): Promise<TaskEntity[]> {
+  async findAll(
+    userId: number,
+    role: Role,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<TaskEntity>> {
+    const { page, limit } = paginationDto;
     const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
 
     if (isManagerOrAdmin) {
-      return this.tasksRepository.find({ relations: { assigner: true } });
+      const [data, total] = await this.tasksRepository.findAndCount({
+        relations: { assigner: true },
+        order: { task_id: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return buildPaginatedResult(data, total, page, limit);
     }
 
-    const assignments = await this.assignedTasksRepository.find({
+    const [assignments, total] = await this.assignedTasksRepository.findAndCount({
       where: { user_id: userId },
       relations: { task: true },
+      order: { task_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
-    return assignments.map((a) => a.task);
+
+    const data = assignments.map((a) => a.task);
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<TaskEntity> {

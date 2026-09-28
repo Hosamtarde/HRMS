@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   ParseIntPipe,
   Post,
   Put,
@@ -19,6 +20,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role, TaskStatus } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 interface JwtUser {
   user_id: number;
@@ -39,8 +41,11 @@ export class TasksController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.tasksService.findAll(user.user_id, user.role);
+  findAll(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.tasksService.findAll(user.user_id, user.role, paginationDto);
   }
 
   @Get(':id')

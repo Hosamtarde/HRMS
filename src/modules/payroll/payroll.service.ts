@@ -6,6 +6,9 @@ import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
 import { RequestType, RequestStatus } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 
 @Injectable()
 export class PayrollService {
@@ -93,18 +96,40 @@ export class PayrollService {
     return results;
   }
 
-  async findAll(): Promise<PayrollEntity[]> {
-    return this.payrollRepository.find({ relations: { user: true } });
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<PayrollEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.payrollRepository.findAndCount({
+      relations: { user: true },
+      order: { payroll_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findByEmployee(userId: number): Promise<PayrollEntity[]> {
-    const records = await this.payrollRepository.find({
+  async findByEmployee(
+    userId: number,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<PayrollEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.payrollRepository.findAndCount({
       where: { user_id: userId },
       order: { salary_month: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
-    if (records.length === 0) {
-      throw new NotFoundException(`No payroll records found for user #${userId}`);
+
+    if (total === 0) {
+      throw new NotFoundException(
+        `No payroll records found for user #${userId}`,
+      );
     }
-    return records;
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 }

@@ -4,6 +4,10 @@ import { Repository } from 'typeorm';
 import { RecruitmentEntity } from './recruitment.entity';
 import { ApplyDto } from './dto/apply.dto';
 import { RecruitmentStatus } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+
 
 @Injectable()
 export class RecruitmentService {
@@ -21,8 +25,18 @@ export class RecruitmentService {
     return this.recruitmentRepository.save(application);
   }
 
-  async findAll(): Promise<RecruitmentEntity[]> {
-    return this.recruitmentRepository.find({ order: { submission_date: 'DESC' } });
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<RecruitmentEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.recruitmentRepository.findAndCount({
+      order: { submission_date: 'DESC', application_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<RecruitmentEntity> {
