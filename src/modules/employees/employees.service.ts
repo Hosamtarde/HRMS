@@ -5,6 +5,9 @@ import * as bcrypt from 'bcrypt';
 import { UserEntity } from '../users/user.entity';
 import { EmployeeProfileEntity } from './employee-profile.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { Role } from '../../common/enums/enums';
 
@@ -53,10 +56,19 @@ export class EmployeesService {
     });
   }
 
-  async findAll(): Promise<EmployeeProfileEntity[]> {
-    return this.employeeProfilesRepository.find({
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<EmployeeProfileEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.employeeProfilesRepository.findAndCount({
       relations: { user: true, department: true },
+      order: { user_id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(userId: number): Promise<EmployeeProfileEntity> {
