@@ -57,3 +57,9 @@ export enum TaskStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
 }
+
+export enum ActivityAction {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+}
