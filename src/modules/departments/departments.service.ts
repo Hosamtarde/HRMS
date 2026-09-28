@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DepartmentEntity } from './department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 
 @Injectable()
@@ -12,8 +15,19 @@ export class DepartmentsService {
     private readonly departmentsRepository: Repository<DepartmentEntity>,
   ) {}
 
-  async findAll(): Promise<DepartmentEntity[]> {
-    return this.departmentsRepository.find({ relations: { manager: true } });
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<DepartmentEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.departmentsRepository.findAndCount({
+      relations: { manager: true },
+      order: { department_id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<DepartmentEntity> {

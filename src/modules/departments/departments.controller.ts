@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Query,
   ParseIntPipe,
   Post,
   Put,
@@ -17,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/enums';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @ApiBearerAuth()
 @Controller('departments')
@@ -25,8 +27,8 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Get()
-  findAll() {
-    return this.departmentsService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.departmentsService.findAll(paginationDto);
   }
 
   @Get(':id')
