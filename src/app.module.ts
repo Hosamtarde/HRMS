@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
@@ -14,6 +14,8 @@ import { RequestsModule } from './modules/requests/requests.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
+import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 
 @Module({
   imports: [
@@ -46,14 +48,14 @@ import { PayrollModule } from './modules/payroll/payroll.module';
     RecruitmentModule,
     TasksModule,
     PayrollModule,
+    ActivityLogsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: ActivityLogInterceptor },
   ],
+  
 })
 export class AppModule {}
