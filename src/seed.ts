@@ -4,7 +4,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './modules/users/user.entity';
 import { Role } from './common/enums/enums';
+import { Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+const logger = new Logger('Seed');
 
 async function seedUser(
   repo: Repository<UserEntity>,
@@ -15,7 +17,7 @@ async function seedUser(
 ) {
   const existing = await repo.findOne({ where: { email } });
   if (existing) {
-    console.log(`${role} already exists:`, email);
+    logger.warn(`${role} already exists: ${email}`);
     return;
   }
 
@@ -28,8 +30,7 @@ async function seedUser(
     status: true,
   });
   await repo.save(user);
-  console.log(`Created ${role} => email: ${email} | password: ${password}`);
-}
+  logger.log(`Created ${role} => email: ${email} | password: ${password}`);
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -41,3 +42,4 @@ async function seed() {
   await app.close();
 }
 seed();
+}
