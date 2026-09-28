@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException,Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PayrollEntity } from './payroll.entity';
@@ -12,6 +12,8 @@ import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 
 @Injectable()
 export class PayrollService {
+  private readonly logger = new Logger(PayrollService.name);
+
   constructor(
     @InjectRepository(PayrollEntity)
     private readonly payrollRepository: Repository<PayrollEntity>,
@@ -71,9 +73,19 @@ export class PayrollService {
   }
 
   
-  async generate(dto: GeneratePayrollDto): Promise<PayrollEntity[] | PayrollEntity> {
+  async generate(
+    dto: GeneratePayrollDto,
+  ): Promise<PayrollEntity[] | PayrollEntity> {
     if (dto.user_id) {
-      return this.generateForEmployee(dto.user_id, dto.salary_month, dto.bonuses ?? 0);
+      const payroll = await this.generateForEmployee(
+        dto.user_id,
+        dto.salary_month,
+        dto.bonuses ?? 0,
+      );
+      this.logger.log(
+        `Payroll generated for user #${dto.user_id} — month ${dto.salary_month}, net ${payroll.net_salary}`,
+      );
+      return payroll;
     }
 
     const allProfiles = await this.employeeProfilesRepository.find({
@@ -82,19 +94,37 @@ export class PayrollService {
 
     const activeProfiles = allProfiles.filter((p) => p.user.status === true);
 
+    this.logger.log(
+      `Starting bulk payroll for ${activeProfiles.length} active employees — month ${dto.salary_month}`,
+    );
+
     const results: PayrollEntity[] = [];
+    let skipped = 0;
+
     for (const profile of activeProfiles) {
       try {
-        const payroll = await this.generateForEmployee(profile.user_id, dto.salary_month, dto.bonuses ?? 0);
+        const payroll = await this.generateForEmployee(
+          profile.user_id,
+          dto.salary_month,
+          dto.bonuses ?? 0,
+        );
         results.push(payroll);
-      } catch {
-
+      } catch (error) {
+        skipped++;
+        this.logger.warn(
+          `Skipped payroll for user #${profile.user_id}: ${(error as Error).message}`,
+        );
         continue;
       }
     }
 
+    this.logger.log(
+      `Bulk payroll finished — generated ${results.length}, skipped ${skipped}`,
+    );
+
     return results;
   }
+
 
   async findAll(
     paginationDto: PaginationDto,

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException,Logger , ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RequestEntity } from './request.entity';
@@ -11,6 +11,8 @@ import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 
 @Injectable()
 export class RequestsService {
+    private readonly logger = new Logger(RequestsService.name);
+
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepository: Repository<RequestEntity>,
@@ -63,20 +65,35 @@ export class RequestsService {
     return request;
   }
 
-  async review(id: number, dto: ReviewRequestDto, reviewerId: number): Promise<RequestEntity> {
-    const request = await this.requestsRepository.findOne({ where: { request_id: id } });
+  async review(
+    id: number,
+    dto: ReviewRequestDto,
+    reviewerId: number,
+  ): Promise<RequestEntity> {
+    const request = await this.requestsRepository.findOne({
+      where: { request_id: id },
+    });
 
     if (!request) {
       throw new NotFoundException(`Request #${id} not found`);
     }
 
     if (request.request_status !== RequestStatus.PENDING) {
+      this.logger.warn(
+        `Review rejected: request #${id} already ${request.request_status}`,
+      );
       throw new BadRequestException('This request has already been processed');
     }
 
     request.request_status = dto.status;
     request.reviewed_by = reviewerId;
 
-    return this.requestsRepository.save(request);
+    const saved = await this.requestsRepository.save(request);
+
+    this.logger.log(
+      `Request #${id} (${request.request_type}) ${dto.status} by user #${reviewerId}`,
+    );
+
+    return saved;
   }
 }
