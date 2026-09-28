@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException,Logger  } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+    private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -16,14 +18,17 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmailWithPassword(dto.email);
     if (!user) {
+      this.logger.warn(`Login failed: no account found for ${dto.email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
     if (!user.status) {
+      this.logger.warn(`Login blocked: account is inactive — ${dto.email}`);
       throw new UnauthorizedException('Account is inactive');
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.password);
     if (!passwordMatches) {
+      this.logger.warn(`Login failed: wrong password for ${dto.email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -35,6 +40,8 @@ export class AuthService {
       secret: this.config.get<string>('JWT_REFRESH_SECRET') as any,
       expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') as any,
     });
+
+    this.logger.log(`User #${user.user_id} logged in as ${user.role}`);
 
     return {
       access_token,
