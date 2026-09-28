@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AttendanceEntity } from './attendance.entity';
 import { AttendanceStatus } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+
 
 @Injectable()
 export class AttendanceService {
@@ -57,7 +61,6 @@ export class AttendanceService {
     const now = new Date();
     const checkOutTime = now.toTimeString().split(' ')[0];
 
-    // حساب ساعات العمل (الفرق بين check-in و check-out)
     const [inH, inM, inS] = record.check_in_time.split(':').map(Number);
     const [outH, outM, outS] = checkOutTime.split(':').map(Number);
     const inSeconds = inH * 3600 + inM * 60 + inS;
@@ -70,21 +73,41 @@ export class AttendanceService {
     return this.attendanceRepository.save(record);
   }
 
-  async findAll(): Promise<AttendanceEntity[]> {
-    return this.attendanceRepository.find({ relations: { user: true } });
+  async findAll(
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<AttendanceEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.attendanceRepository.findAndCount({
+      relations: { user: true },
+      order: { attendance_date: 'DESC', user_id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findByEmployee(userId: number): Promise<AttendanceEntity[]> {
-    const records = await this.attendanceRepository.find({
+  async findByEmployee(
+    userId: number,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<AttendanceEntity>> {
+    const { page, limit } = paginationDto;
+
+    const [data, total] = await this.attendanceRepository.findAndCount({
       where: { user_id: userId },
       relations: { user: true },
       order: { attendance_date: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    if (records.length === 0) {
-      throw new NotFoundException(`No attendance records found for user #${userId}`);
+    if (total === 0) {
+      throw new NotFoundException(
+        `No attendance records found for user #${userId}`,
+      );
     }
 
-    return records;
+    return buildPaginatedResult(data, total, page, limit);
   }
 }
