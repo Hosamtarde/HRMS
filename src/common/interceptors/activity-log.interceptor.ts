@@ -20,6 +20,8 @@ export class ActivityLogInterceptor implements NestInterceptor {
     DELETE: ActivityAction.DELETE,
   };
 
+  private readonly excludedEntities = ['auth'];
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const method: string = request.method;
@@ -31,8 +33,13 @@ export class ActivityLogInterceptor implements NestInterceptor {
     }
 
     const path: string = request.route?.path ?? request.url;
-    const userId: number | undefined = request.user?.user_id;
     const entity = this.extractEntity(path);
+
+    if (this.excludedEntities.includes(entity)) {
+      return next.handle();
+    }
+
+    const userId: number | undefined = request.user?.user_id;
     const entityId = this.extractEntityId(request);
 
     return next.handle().pipe(
