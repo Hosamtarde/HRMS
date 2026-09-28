@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param,Query, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -8,6 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 interface JwtUser {
   user_id: number;
@@ -21,16 +22,17 @@ interface JwtUser {
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
-  // أي موظف مسجل دخول يقدر يقدّم طلب
   @Post()
   create(@CurrentUser() user: JwtUser, @Body() dto: CreateRequestDto) {
     return this.requestsService.create(user.user_id, dto);
   }
 
-  // Employee: طلباته بس | Manager/HR: كل الطلبات (الفلترة داخل الـ Service)
   @Get()
-  findAll(@CurrentUser() user: JwtUser) {
-    return this.requestsService.findAll(user.user_id, user.role);
+  findAll(
+    @CurrentUser() user: JwtUser,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.requestsService.findAll(user.user_id, user.role, paginationDto);
   }
 
   @Get(':id')
@@ -38,7 +40,6 @@ export class RequestsController {
     return this.requestsService.findOne(id, user.user_id, user.role);
   }
 
-  // الموافقة/الرفض: بس Manager أو HR Admin
   @Put(':id/review')
   @Roles(Role.MANAGER, Role.HR_ADMIN)
   review(

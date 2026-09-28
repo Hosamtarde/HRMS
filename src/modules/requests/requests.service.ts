@@ -5,6 +5,9 @@ import { RequestEntity } from './request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ReviewRequestDto } from './dto/review-request.dto';
 import { RequestStatus, Role } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 
 @Injectable()
 export class RequestsService {
@@ -22,14 +25,23 @@ export class RequestsService {
     return this.requestsRepository.save(request);
   }
 
-  async findAll(userId: number, role: Role): Promise<RequestEntity[]> {
+  async findAll(
+    userId: number,
+    role: Role,
+    paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<RequestEntity>> {
+    const { page, limit } = paginationDto;
     const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
 
-    return this.requestsRepository.find({
+    const [data, total] = await this.requestsRepository.findAndCount({
       where: isManagerOrAdmin ? {} : { user_id: userId },
       relations: { user: true, reviewer: true },
-      order: { created_at: 'DESC' },
+      order: { created_at: 'DESC', request_id: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number, userId: number, role: Role): Promise<RequestEntity> {
@@ -43,7 +55,7 @@ export class RequestsService {
     }
 
     const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
-    // موظف عادي ما يقدر يشوف طلب حدا تاني
+    
     if (!isManagerOrAdmin && request.user_id !== userId) {
       throw new ForbiddenException('You can only view your own requests');
     }
