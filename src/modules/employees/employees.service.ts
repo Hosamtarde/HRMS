@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException,Logger  } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -13,22 +13,26 @@ import { Role } from '../../common/enums/enums';
 
 @Injectable()
 export class EmployeesService {
+    private readonly logger = new Logger(EmployeesService.name);
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
     @InjectRepository(EmployeeProfileEntity)
     private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
-    private readonly dataSource: DataSource, // 👈 يخلينا نستخدم Transactions
+    private readonly dataSource: DataSource, 
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeProfileEntity> {
-
-    const existing = await this.usersRepository.findOne({ where: { email: dto.email } });
+    const existing = await this.usersRepository.findOne({
+      where: { email: dto.email },
+    });
     if (existing) {
+      this.logger.warn(`Employee creation rejected: email already exists — ${dto.email}`);
       throw new ConflictException('A user with this email already exists');
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const savedProfile = await this.dataSource.transaction(async (manager) => {
       const hashedPassword = await bcrypt.hash(dto.password, 10);
 
       const user = manager.create(UserEntity, {
@@ -50,10 +54,14 @@ export class EmployeesService {
         basic_salary: dto.basic_salary,
         employment_type: dto.employment_type,
       });
-      const savedProfile = await manager.save(profile);
-
-      return savedProfile;
+      return manager.save(profile);
     });
+
+    this.logger.log(
+      `Employee created: user #${savedProfile.user_id} (${dto.email}) in department ${dto.department_id}`,
+    );
+
+    return savedProfile;
   }
 
   async findAll(
@@ -107,5 +115,6 @@ export class EmployeesService {
   async remove(userId: number): Promise<void> {
     const profile = await this.findOne(userId);
     await this.usersRepository.update(profile.user_id, { status: false });
+    this.logger.log(`Employee #${profile.user_id} deactivated (soft delete)`);
   }
 }
