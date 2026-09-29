@@ -56,6 +56,7 @@ export enum TaskStatus {
   TODO = 'to-do',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
 }
 
 export enum ActivityAction {
