@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Delete,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -15,6 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { UpdateApplicationStatusDto } from './dto/update-status.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { RecruitmentService } from './recruitment.service';
 import { ApplyDto } from './dto/apply.dto';
@@ -67,13 +69,29 @@ export class RecruitmentController {
   }
 
   @ApiBearerAuth()
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.HR_ADMIN)
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.recruitmentService.findOne(id);
+  }
+
+  @ApiBearerAuth()
   @Put(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.HR_ADMIN)
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('status') status: RecruitmentStatus,
+    @Body() dto: UpdateApplicationStatusDto,
   ) {
-    return this.recruitmentService.updateStatus(id, status);
+    return this.recruitmentService.updateStatus(id, dto.status);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.HR_ADMIN)
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.recruitmentService.remove(id);
   }
 }
