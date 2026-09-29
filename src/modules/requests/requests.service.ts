@@ -4,10 +4,11 @@ import { Repository } from 'typeorm';
 import { RequestEntity } from './request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ReviewRequestDto } from './dto/review-request.dto';
-import { RequestStatus, Role } from '../../common/enums/enums';
+import { RequestStatus, Role, RequestType } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+import { LeaveTypesService } from '../leave-types/leave-types.service';
 
 @Injectable()
 export class RequestsService {
@@ -16,16 +17,22 @@ export class RequestsService {
   constructor(
     @InjectRepository(RequestEntity)
     private readonly requestsRepository: Repository<RequestEntity>,
+    private readonly leaveTypesService: LeaveTypesService,
   ) {}
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
-    const request = this.requestsRepository.create({
-      ...dto,
-      user_id: userId,
-      request_status: RequestStatus.PENDING, 
-    });
-    return this.requestsRepository.save(request);
-  }
+      if (dto.request_type === RequestType.LEAVE) {
+        await this.leaveTypesService.findOne(dto.leave_type_id!);
+      }
+
+      const request = this.requestsRepository.create({
+        ...dto,
+        user_id: userId,
+        request_status: RequestStatus.PENDING,
+      });
+
+      return this.requestsRepository.save(request);
+    }
 
   async findAll(
     userId: number,

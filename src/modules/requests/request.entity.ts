@@ -7,7 +7,8 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
-import { RequestType, RequestStatus, LeaveType } from '../../common/enums/enums';
+import { RequestType, RequestStatus } from '../../common/enums/enums';
+import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 
 @Entity('requests')
 export class RequestEntity {
@@ -27,8 +28,12 @@ export class RequestEntity {
   @Column({ length: 150, nullable: true })
   request_title!: string;
 
-  @Column({ type: 'enum', enum: LeaveType, nullable: true })
-  leave_type!: LeaveType;
+  @Column({ nullable: true })
+  leave_type_id!: number;
+
+  @ManyToOne(() => LeaveTypeEntity, { nullable: true })
+  @JoinColumn({ name: 'leave_type_id' })
+  leaveType!: LeaveTypeEntity;
 
   @Column({ type: 'date', nullable: true })
   start_date!: string;
