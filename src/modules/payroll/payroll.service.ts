@@ -9,6 +9,7 @@ import { RequestType, RequestStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+import { UpdatePayrollDto } from './dto/update-payroll.dto';
 
 @Injectable()
 export class PayrollService {
@@ -162,4 +163,54 @@ export class PayrollService {
 
     return buildPaginatedResult(data, total, page, limit);
   }
+
+    async findOne(id: number): Promise<PayrollEntity> {
+    const payroll = await this.payrollRepository.findOne({
+      where: { payroll_id: id },
+      relations: { user: true },
+    });
+
+    if (!payroll) {
+      throw new NotFoundException(`Payroll record #${id} not found`);
+    }
+
+    return payroll;
+  }
+
+  async update(id: number, dto: UpdatePayrollDto): Promise<PayrollEntity> {
+    const payroll = await this.findOne(id);
+
+    if (dto.bonuses !== undefined) {
+      payroll.bonuses = dto.bonuses;
+    }
+    if (dto.deductions !== undefined) {
+      payroll.deductions = dto.deductions;
+    }
+
+    payroll.net_salary =
+      Number(payroll.basic_salary) +
+      Number(payroll.bonuses) -
+      Number(payroll.deductions);
+
+    const saved = await this.payrollRepository.save(payroll);
+
+    this.logger.log(
+      `Payroll #${id} updated — bonuses ${saved.bonuses}, deductions ${saved.deductions}, net ${saved.net_salary}`,
+    );
+
+    return saved;
+  }
+
+  async remove(id: number): Promise<{ message: string }> {
+    const payroll = await this.findOne(id);
+
+    await this.payrollRepository.remove(payroll);
+
+    this.logger.warn(
+      `Payroll #${id} deleted — user #${payroll.user_id}, month ${payroll.salary_month}`,
+    );
+
+    return { message: `Payroll record #${id} deleted successfully` };
+  }
+  
 }

@@ -7,10 +7,14 @@ import { RecruitmentStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
-
+import { Logger } from '@nestjs/common';
+import * as fs from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class RecruitmentService {
+  private readonly logger = new Logger(RecruitmentService.name);
+
   constructor(
     @InjectRepository(RecruitmentEntity)
     private readonly recruitmentRepository: Repository<RecruitmentEntity>,
@@ -54,4 +58,29 @@ export class RecruitmentService {
     application.application_status = status;
     return this.recruitmentRepository.save(application);
   }
+
+    async remove(id: number): Promise<{ message: string }> {
+    const application = await this.findOne(id);
+    const fileName = application.cv_file;
+
+    await this.recruitmentRepository.remove(application);
+
+    if (fileName) {
+      const filePath = join(process.cwd(), 'uploads', fileName);
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Application #${id} deleted but its CV file was not: ${(error as Error).message}`,
+        );
+      }
+    }
+
+    this.logger.log(`Application #${id} deleted`);
+
+    return { message: `Application #${id} deleted successfully` };
+  }
+  
 }0
