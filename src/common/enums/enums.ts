@@ -38,6 +38,12 @@ export enum LeaveType {
   UNPAID = 'unpaid',
 }
 
+export enum PaymentType {
+  PAID = 'paid',
+  HALF_PAID = 'half_paid',
+  UNPAID = 'unpaid',
+}
+
 export enum RecruitmentStatus {
   PENDING = 'pending',
   SHORTLISTED = 'shortlisted',

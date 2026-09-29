@@ -16,6 +16,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
+import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     TasksModule,
     PayrollModule,
     ActivityLogsModule,
+    LeaveTypesModule,
   ],
   controllers: [AppController],
   providers: [
