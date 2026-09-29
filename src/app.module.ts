@@ -30,6 +30,7 @@ import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
+        timezone: 'Z',
         autoLoadEntities: true,
         synchronize: false,
       }),
