@@ -19,6 +19,23 @@ export class AttendanceService {
     return new Date().toISOString().split('T')[0];
   }
 
+  private readonly workStartTime = '08:00:00';
+  private readonly graceMinutes = 15;
+
+  private toSeconds(time: string): number {
+    const [hours, minutes, seconds] = time.split(':').map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  private determineStatus(checkInTime: string): AttendanceStatus {
+    const allowedSeconds =
+      this.toSeconds(this.workStartTime) + this.graceMinutes * 60;
+
+    return this.toSeconds(checkInTime) > allowedSeconds
+      ? AttendanceStatus.LATE
+      : AttendanceStatus.PRESENT;
+  }
+
   async checkIn(userId: number): Promise<AttendanceEntity> {
     const today = this.getToday();
 
@@ -37,7 +54,7 @@ export class AttendanceService {
       user_id: userId,
       check_in_time: currentTime,
       attendance_date: today,
-      attendance_status: AttendanceStatus.PRESENT,
+      attendance_status: this.determineStatus(currentTime),
     });
 
     return this.attendanceRepository.save(record);
@@ -61,10 +78,8 @@ export class AttendanceService {
     const now = new Date();
     const checkOutTime = now.toTimeString().split(' ')[0];
 
-    const [inH, inM, inS] = record.check_in_time.split(':').map(Number);
-    const [outH, outM, outS] = checkOutTime.split(':').map(Number);
-    const inSeconds = inH * 3600 + inM * 60 + inS;
-    const outSeconds = outH * 3600 + outM * 60 + outS;
+    const inSeconds = this.toSeconds(record.check_in_time);
+    const outSeconds = this.toSeconds(checkOutTime);
     const workingHours = Number(((outSeconds - inSeconds) / 3600).toFixed(2));
 
     record.check_out_time = checkOutTime;
