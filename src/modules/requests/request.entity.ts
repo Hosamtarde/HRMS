@@ -24,7 +24,9 @@ export class RequestEntity {
   @Column({ type: 'enum', enum: RequestType })
   request_type!: RequestType;
 
-  
+  @Column({ length: 150, nullable: true })
+  request_title!: string;
+
   @Column({ type: 'enum', enum: LeaveType, nullable: true })
   leave_type!: LeaveType;
 
