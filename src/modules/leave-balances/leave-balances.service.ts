@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException,BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LeaveBalanceEntity } from './leave-balance.entity';
@@ -10,6 +10,7 @@ import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 import { UserEntity } from '../users/user.entity';
 import { PaymentType } from '../../common/enums/enums';
+import { EntityManager } from 'typeorm';
 import {
   SERVICE_TIERS,
   CARRY_OVER_CAP,
@@ -287,5 +288,49 @@ export class LeaveBalancesService {
     const remaining = this.computeAvailable(previous);
 
     return Math.max(0, Math.min(remaining, CARRY_OVER_CAP));
+  }
+
+    /**
+   * يخصم أياماً من الرصيد ضمن معاملة يملكها المستدعي.
+   * يأخذ قفلاً على الصف حتى لا تمرّ موافقتان متزامنتان على رصيد واحد.
+   */
+  async consumeDays(
+    manager: EntityManager,
+    userId: number,
+    leaveTypeId: number,
+    year: number,
+    days: number,
+  ): Promise<void> {
+    const repo = manager.getRepository(LeaveBalanceEntity);
+
+    const balance = await repo.findOne({
+      where: { user_id: userId, leave_type_id: leaveTypeId, year },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!balance) {
+      throw new BadRequestException(
+        `No leave balance has been calculated for this leave type in ${year}.`,
+      );
+    }
+
+    const available =
+      Number(balance.total_days) +
+      Number(balance.carried_over) -
+      Number(balance.used_days);
+
+    if (days > available) {
+      throw new BadRequestException(
+        `Insufficient balance. Requested ${days} days, available ${available}.`,
+      );
+    }
+
+    balance.used_days = Number(balance.used_days) + days;
+    await repo.save(balance);
+
+    this.logger.log(
+      `Consumed ${days} days from balance #${balance.balance_id} ` +
+        `(user #${userId}) — ${available - days} days remain`,
+    );
   }
 }
