@@ -31,10 +31,9 @@ export enum RequestStatus {
   REJECTED = 'rejected',
 }
 
-export enum LeaveType {
-  ANNUAL = 'annual',
-  SICK = 'sick',
-  EMERGENCY = 'emergency',
+export enum PaymentType {
+  PAID = 'paid',
+  HALF_PAID = 'half_paid',
   UNPAID = 'unpaid',
 }
 

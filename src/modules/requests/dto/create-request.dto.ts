@@ -10,7 +10,7 @@ import {
   Length,
   ValidateIf,
 } from 'class-validator';
-import { RequestType, LeaveType } from '../../../common/enums/enums';
+import { RequestType } from '../../../common/enums/enums';
 
 export class CreateRequestDto {
   @IsEnum(RequestType)
@@ -23,8 +23,9 @@ export class CreateRequestDto {
   request_title?: string;
   
   @ValidateIf((o) => o.request_type === RequestType.LEAVE)
-  @IsEnum(LeaveType)
-  leave_type?: LeaveType;
+  @IsInt()
+  @Min(1)
+  leave_type_id?: number;
 
   @ValidateIf((o) => o.request_type === RequestType.LEAVE)
   @IsDateString()

@@ -16,6 +16,9 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
+import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
+import { LeaveBalancesModule } from './modules/leave-balances/leave-balances.module';
+
 
 @Module({
   imports: [
@@ -29,6 +32,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
+        timezone: 'Z',
         autoLoadEntities: true,
         synchronize: false,
       }),
@@ -49,6 +53,8 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
     TasksModule,
     PayrollModule,
     ActivityLogsModule,
+    LeaveTypesModule,
+    LeaveBalancesModule,
   ],
   controllers: [AppController],
   providers: [
