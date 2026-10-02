@@ -17,6 +17,8 @@ import { PayrollModule } from './modules/payroll/payroll.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { ActivityLogInterceptor } from './common/interceptors/activity-log.interceptor';
 import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
+import { LeaveBalancesModule } from './modules/leave-balances/leave-balances.module';
+
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
     PayrollModule,
     ActivityLogsModule,
     LeaveTypesModule,
+    LeaveBalancesModule,
   ],
   controllers: [AppController],
   providers: [
