@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Post,
   Get,
   Param,
   ParseIntPipe,
@@ -17,6 +18,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { QueryLeaveBalancesDto } from './dto/query-leave-balances.dto';
 
 @ApiBearerAuth()
 @Controller('leave-balances')
@@ -37,15 +39,8 @@ export class LeaveBalancesController {
   }
 
   @Get()
-  @ApiQuery({ name: 'year', required: false, example: 2026 })
-  findAll(
-    @Query() paginationDto: PaginationDto,
-    @Query('year') year?: string,
-  ) {
-    return this.leaveBalancesService.findAll(
-      paginationDto,
-      year ? Number(year) : undefined,
-    );
+  findAll(@Query() query: QueryLeaveBalancesDto) {
+    return this.leaveBalancesService.findAll(query, query.year);
   }
 
   @Get(':id')
@@ -60,4 +55,13 @@ export class LeaveBalancesController {
   ) {
     return this.leaveBalancesService.update(id, dto);
   }
+
+  @Post('calculate')
+  @ApiQuery({ name: 'year', required: false, example: 2026 })
+  calculate(@Query('year') year?: string) {
+    const targetYear = year ? Number(year) : new Date().getFullYear();
+    return this.leaveBalancesService.calculateForYear(targetYear);
+  }
+
+
 }

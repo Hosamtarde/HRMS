@@ -6,6 +6,31 @@ import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
+import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
+import { UserEntity } from '../users/user.entity';
+import { PaymentType } from '../../common/enums/enums';
+import {
+  SERVICE_TIERS,
+  CARRY_OVER_CAP,
+  PRORATE_FIRST_YEAR,
+} from './leave-balance.constants';
+
+/** الشكل الموحّد الذي تُعرض به الأرصدة في كل المسارات */
+export interface PresentedLeaveBalance {
+  balance_id: number;
+  user_id: number;
+  user?: UserEntity;
+  leave_type_id: number;
+  type_name?: string;
+  payment_type?: PaymentType;
+  year: number;
+  total_days: number;
+  carried_over: number;
+  used_days: number;
+  available_days: number;
+  is_manual: boolean;
+}
 
 @Injectable()
 export class LeaveBalancesService {
@@ -14,8 +39,13 @@ export class LeaveBalancesService {
   constructor(
     @InjectRepository(LeaveBalanceEntity)
     private readonly leaveBalancesRepository: Repository<LeaveBalanceEntity>,
+    @InjectRepository(EmployeeProfileEntity)
+    private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
+    @InjectRepository(LeaveTypeEntity)
+    private readonly leaveTypesRepository: Repository<LeaveTypeEntity>,
   ) {}
 
+  /** الرصيد المتاح = المستحق + المرحّل − المستهلك */
   private computeAvailable(balance: LeaveBalanceEntity): number {
     return (
       Number(balance.total_days) +
@@ -24,10 +54,28 @@ export class LeaveBalancesService {
     );
   }
 
+  /** شكل العرض الموحّد — أرقام لا نصوص، مع الرصيد المتاح محسوباً */
+  private present(balance: LeaveBalanceEntity): PresentedLeaveBalance {
+    return {
+      balance_id: balance.balance_id,
+      user_id: balance.user_id,
+      user: balance.user,
+      leave_type_id: balance.leave_type_id,
+      type_name: balance.leaveType?.type_name,
+      payment_type: balance.leaveType?.payment_type,
+      year: balance.year,
+      total_days: Number(balance.total_days),
+      carried_over: Number(balance.carried_over),
+      used_days: Number(balance.used_days),
+      available_days: this.computeAvailable(balance),
+      is_manual: balance.is_manual,
+    };
+  }
+
   async findAll(
     paginationDto: PaginationDto,
     year?: number,
-  ): Promise<PaginatedResult<LeaveBalanceEntity>> {
+  ): Promise<PaginatedResult<PresentedLeaveBalance>> {
     const { page, limit } = paginationDto;
 
     const [data, total] = await this.leaveBalancesRepository.findAndCount({
@@ -38,30 +86,28 @@ export class LeaveBalancesService {
       take: limit,
     });
 
-    return buildPaginatedResult(data, total, page, limit);
+    return buildPaginatedResult(
+      data.map((balance) => this.present(balance)),
+      total,
+      page,
+      limit,
+    );
   }
 
-  async findByUser(userId: number, year: number) {
+  async findByUser(
+    userId: number,
+    year: number,
+  ): Promise<PresentedLeaveBalance[]> {
     const balances = await this.leaveBalancesRepository.find({
       where: { user_id: userId, year },
       relations: { leaveType: true },
       order: { leave_type_id: 'ASC' },
     });
 
-    return balances.map((balance) => ({
-      balance_id: balance.balance_id,
-      leave_type_id: balance.leave_type_id,
-      type_name: balance.leaveType?.type_name,
-      payment_type: balance.leaveType?.payment_type,
-      year: balance.year,
-      total_days: Number(balance.total_days),
-      carried_over: Number(balance.carried_over),
-      used_days: Number(balance.used_days),
-      available_days: this.computeAvailable(balance),
-      is_manual: balance.is_manual,
-    }));
+    return balances.map((balance) => this.present(balance));
   }
 
+  /** الكيان الخام — للاستخدام الداخلي حيث نحتاج صفاً قابلاً للحفظ */
   async findOne(id: number): Promise<LeaveBalanceEntity> {
     const balance = await this.leaveBalancesRepository.findOne({
       where: { balance_id: id },
@@ -75,10 +121,14 @@ export class LeaveBalancesService {
     return balance;
   }
 
+  async findOnePresented(id: number): Promise<PresentedLeaveBalance> {
+    return this.present(await this.findOne(id));
+  }
+
   async update(
     id: number,
     dto: UpdateLeaveBalanceDto,
-  ): Promise<LeaveBalanceEntity> {
+  ): Promise<PresentedLeaveBalance> {
     const balance = await this.findOne(id);
 
     if (dto.total_days !== undefined) balance.total_days = dto.total_days;
@@ -94,9 +144,10 @@ export class LeaveBalancesService {
         `— available is now ${this.computeAvailable(saved)} days`,
     );
 
-    return saved;
+    return this.present(saved);
   }
 
+  /** يستخدمه موديول الطلبات للتحقق قبل تقديم طلب إجازة */
   async getAvailableDays(
     userId: number,
     leaveTypeId: number,
@@ -111,5 +162,130 @@ export class LeaveBalancesService {
     }
 
     return this.computeAvailable(balance);
+  }
+
+  /** مدة الخدمة بالسنوات حتى نهاية السنة المحتسَبة */
+  private yearsOfService(hireDate: string, year: number): number {
+    const hire = new Date(hireDate);
+    const endOfYear = new Date(Date.UTC(year, 11, 31));
+    const ms = endOfYear.getTime() - hire.getTime();
+    return ms / (1000 * 60 * 60 * 24 * 365.25);
+  }
+
+  /** الاستحقاق حسب الشريحة، مع التناسب لمن عُيّن خلال السنة */
+  private entitlementFor(hireDate: string, year: number): number {
+    const years = this.yearsOfService(hireDate, year);
+
+    const tier = SERVICE_TIERS.find(
+      (t) => years >= t.minYears && years < t.maxYears,
+    );
+    const fullDays = tier ? tier.days : SERVICE_TIERS[0].days;
+
+    const hire = new Date(hireDate);
+    const hiredThisYear = hire.getUTCFullYear() === year;
+
+    if (!hiredThisYear || !PRORATE_FIRST_YEAR) {
+      return fullDays;
+    }
+
+    const monthsWorked = 12 - hire.getUTCMonth();
+    const prorated = (fullDays * monthsWorked) / 12;
+
+    return Math.round(prorated * 2) / 2;
+  }
+
+  async calculateForYear(year: number) {
+    const [profiles, leaveTypes] = await Promise.all([
+      this.employeeProfilesRepository.find({ relations: { user: true } }),
+      this.leaveTypesRepository.find(),
+    ]);
+
+    const activeProfiles = profiles.filter((p) => p.user?.status === true);
+
+    let created = 0;
+    let updated = 0;
+    let skippedManual = 0;
+    let skippedNotHired = 0;
+
+    for (const profile of activeProfiles) {
+      const hireYear = new Date(profile.hire_date).getUTCFullYear();
+      if (hireYear > year) {
+        skippedNotHired++;
+        continue;
+      }
+
+      for (const leaveType of leaveTypes) {
+        const existing = await this.leaveBalancesRepository.findOne({
+          where: {
+            user_id: profile.user_id,
+            leave_type_id: leaveType.leave_type_id,
+            year,
+          },
+        });
+
+        if (existing?.is_manual) {
+          skippedManual++;
+          continue;
+        }
+
+        const totalDays = leaveType.uses_service_tiers
+          ? this.entitlementFor(profile.hire_date, year)
+          : Number(leaveType.default_days);
+
+        const carriedOver = leaveType.uses_service_tiers
+          ? await this.carryOverFrom(
+              profile.user_id,
+              leaveType.leave_type_id,
+              year - 1,
+            )
+          : 0;
+
+        if (existing) {
+          existing.total_days = totalDays;
+          existing.carried_over = carriedOver;
+          await this.leaveBalancesRepository.save(existing);
+          updated++;
+        } else {
+          await this.leaveBalancesRepository.save(
+            this.leaveBalancesRepository.create({
+              user_id: profile.user_id,
+              leave_type_id: leaveType.leave_type_id,
+              year,
+              total_days: totalDays,
+              carried_over: carriedOver,
+              used_days: 0,
+              is_manual: false,
+            }),
+          );
+          created++;
+        }
+      }
+    }
+
+    this.logger.log(
+      `Leave balances for ${year}: ${created} created, ${updated} updated, ` +
+        `${skippedManual} manual rows left alone, ${skippedNotHired} not yet hired`,
+    );
+
+    return { year, created, updated, skippedManual, skippedNotHired };
+  }
+
+  /** المتبقي من السنة الماضية، بحد أقصى CARRY_OVER_CAP */
+  private async carryOverFrom(
+    userId: number,
+    leaveTypeId: number,
+    previousYear: number,
+  ): Promise<number> {
+    const previous = await this.leaveBalancesRepository.findOne({
+      where: { user_id: userId, leave_type_id: leaveTypeId, year: previousYear },
+    });
+
+    if (!previous) {
+      return 0;
+    }
+
+    const remaining = this.computeAvailable(previous);
+
+    return Math.max(0, Math.min(remaining, CARRY_OVER_CAP));
   }
 }

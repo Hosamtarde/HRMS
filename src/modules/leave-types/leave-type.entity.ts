@@ -20,6 +20,9 @@ export class LeaveTypeEntity {
   @Column({ type: 'int' })
   default_days!: number;
 
+  @Column({ type: 'boolean', default: false })
+  uses_service_tiers!: boolean;
+
   @CreateDateColumn()
   created_at!: Date;
 }
