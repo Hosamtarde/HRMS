@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param,Query, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param,Query, ParseIntPipe, Post,Delete, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -49,4 +49,10 @@ export class RequestsController {
   ) {
     return this.requestsService.review(id, dto, user.user_id);
   }
+
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+    return this.requestsService.remove(id, user.user_id, user.role);
+  }
+
 }

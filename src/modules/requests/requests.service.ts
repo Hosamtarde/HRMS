@@ -199,6 +199,43 @@ export class RequestsService {
     });
   }
 
+    async remove(
+    id: number,
+    userId: number,
+    role: Role,
+  ): Promise<{ message: string }> {
+    const request = await this.requestsRepository.findOne({
+      where: { request_id: id },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request #${id} not found`);
+    }
+
+    const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
+
+    if (!isManagerOrAdmin && request.user_id !== userId) {
+      throw new ForbiddenException('You can only delete your own requests');
+    }
+
+    if (request.request_status !== RequestStatus.PENDING) {
+      this.logger.warn(
+        `Delete rejected: request #${id} is already ${request.request_status}`,
+      );
+      throw new BadRequestException(
+        `Only pending requests can be deleted. This request has already been ${request.request_status}.`,
+      );
+    }
+
+    await this.requestsRepository.remove(request);
+
+    this.logger.log(
+      `Request #${id} (${request.request_type}) deleted by user #${userId}`,
+    );
+
+    return { message: `Request #${id} has been deleted` };
+  }
+
   
   async getLeaveDaysInMonth(
     userId: number,
@@ -236,7 +273,6 @@ export class RequestsService {
       const start = new Date(leave.start_date);
       const end = new Date(leave.end_date);
 
-      // الجزء المتقاطع مع الشهر فقط
       const from = start > monthStart ? start : monthStart;
       const to = end < monthEnd ? end : monthEnd;
 
