@@ -63,3 +63,8 @@ export enum ActivityAction {
   UPDATE = 'update',
   DELETE = 'delete',
 }
+
+export enum RepaymentStatus {
+  PENDING = 'pending',
+  PAID = 'paid',
+}

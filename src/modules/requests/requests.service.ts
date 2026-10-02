@@ -13,6 +13,7 @@ import { LeaveBalancesService } from '../leave-balances/leave-balances.service';
 import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 import { PaymentType } from '../../common/enums/enums';
 import { DataSource } from 'typeorm';
+import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
 
 @Injectable()
 export class RequestsService {
@@ -24,6 +25,7 @@ export class RequestsService {
     private readonly leaveTypesService: LeaveTypesService,
     private readonly leaveBalancesService: LeaveBalancesService,
     private readonly dataSource: DataSource,
+    private readonly loanRepaymentsService: LoanRepaymentsService,    
   ) {}
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
@@ -41,7 +43,6 @@ export class RequestsService {
     return this.requestsRepository.save(request);
   }
 
-  /** عدد الأيام شامل طرفي المدة — من ٥ إلى ٨ أكتوبر = ٤ أيام */
   private countLeaveDays(startDate: string, endDate: string): number {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -61,7 +62,6 @@ export class RequestsService {
       throw new BadRequestException('end_date must not be before start_date');
     }
 
-    // الإجازة غير المدفوعة ليست استحقاقاً، فلا رصيد يحدّها
     if (leaveType.payment_type === PaymentType.UNPAID) {
       return;
     }
@@ -179,6 +179,12 @@ export class RequestsService {
           );
         }
       }
+            if (
+        dto.status === RequestStatus.APPROVED &&
+        request.request_type === RequestType.LOAN
+      ) {
+        await this.loanRepaymentsService.generateSchedule(manager, request);
+      }
 
       request.request_status = dto.status;
       request.reviewed_by = reviewerId;
@@ -193,11 +199,7 @@ export class RequestsService {
     });
   }
 
-    /**
-   * أيام الإجازات الموافَق عليها الواقعة ضمن شهر راتب معيّن، مصنّفة حسب نوع الدفع.
-   * يستدعيها حساب الراتب لخصم الأيام غير المدفوعة.
-   * salaryMonth بصيغة 'YYYY-MM-DD' أو 'YYYY-MM'.
-   */
+  
   async getLeaveDaysInMonth(
     userId: number,
     salaryMonth: string,
