@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { AttendanceEntity } from './attendance.entity';
 import { AttendanceStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -124,5 +124,32 @@ export class AttendanceService {
     }
 
     return buildPaginatedResult(data, total, page, limit);
+  }
+
+
+  async getAttendedDates(
+    userId: number,
+    salaryMonth: string,
+  ): Promise<Set<string>> {
+    const [yearStr, monthStr] = salaryMonth.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr) - 1;
+
+    const monthStart = new Date(Date.UTC(year, month, 1))
+      .toISOString()
+      .split('T')[0];
+    const monthEnd = new Date(Date.UTC(year, month + 1, 0))
+      .toISOString()
+      .split('T')[0];
+
+    const records = await this.attendanceRepository.find({
+      where: {
+        user_id: userId,
+        attendance_date: Between(monthStart, monthEnd),
+      },
+      select: { attendance_date: true },
+    });
+
+    return new Set(records.map((r) => r.attendance_date));
   }
 }

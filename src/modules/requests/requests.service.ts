@@ -236,11 +236,12 @@ export class RequestsService {
     return { message: `Request #${id} has been deleted` };
   }
 
-  
-  async getLeaveDaysInMonth(
-    userId: number,
+
+  private clampToMonth(
+    startDate: string,
+    endDate: string,
     salaryMonth: string,
-  ): Promise<{ unpaidDays: number; halfPaidDays: number }> {
+  ): { from: Date; to: Date } | null {
     const [yearStr, monthStr] = salaryMonth.split('-');
     const year = Number(yearStr);
     const month = Number(monthStr) - 1;
@@ -248,6 +249,23 @@ export class RequestsService {
     const monthStart = new Date(Date.UTC(year, month, 1));
     const monthEnd = new Date(Date.UTC(year, month + 1, 0));
 
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const from = start > monthStart ? start : monthStart;
+    const to = end < monthEnd ? end : monthEnd;
+
+    if (to.getTime() < from.getTime()) {
+      return null;
+    }
+
+    return { from, to };
+  }
+  
+  async getLeaveDaysInMonth(
+    userId: number,
+    salaryMonth: string,
+  ): Promise<{ unpaidDays: number; halfPaidDays: number }> {
     const approvedLeaves = await this.requestsRepository.find({
       where: {
         user_id: userId,
@@ -270,17 +288,18 @@ export class RequestsService {
         continue;
       }
 
-      const start = new Date(leave.start_date);
-      const end = new Date(leave.end_date);
+      const span = this.clampToMonth(
+        leave.start_date,
+        leave.end_date,
+        salaryMonth,
+      );
 
-      const from = start > monthStart ? start : monthStart;
-      const to = end < monthEnd ? end : monthEnd;
-
-      if (to.getTime() < from.getTime()) {
+      if (!span) {
         continue;
       }
 
-      const days = Math.floor((to.getTime() - from.getTime()) / 86400000) + 1;
+      const days =
+        Math.floor((span.to.getTime() - span.from.getTime()) / 86400000) + 1;
 
       if (paymentType === PaymentType.UNPAID) {
         unpaidDays += days;
@@ -290,6 +309,41 @@ export class RequestsService {
     }
 
     return { unpaidDays, halfPaidDays };
+  }
+
+
+  async getApprovedLeaveDates(
+    userId: number,
+    salaryMonth: string,
+  ): Promise<Set<string>> {
+    const approvedLeaves = await this.requestsRepository.find({
+      where: {
+        user_id: userId,
+        request_type: RequestType.LEAVE,
+        request_status: RequestStatus.APPROVED,
+      },
+      select: { start_date: true, end_date: true },
+    });
+
+    const dates = new Set<string>();
+
+    for (const leave of approvedLeaves) {
+      const span = this.clampToMonth(
+        leave.start_date,
+        leave.end_date,
+        salaryMonth,
+      );
+
+      if (!span) {
+        continue;
+      }
+
+      for (let t = span.from.getTime(); t <= span.to.getTime(); t += 86400000) {
+        dates.add(new Date(t).toISOString().split('T')[0]);
+      }
+    }
+
+    return dates;
   }
   
 }

@@ -7,6 +7,7 @@ import { PayrollService } from './payroll.service';
 import { PayrollController } from './payroll.controller';
 import { LoanRepaymentsModule } from '../loan-repayments/loan-repayments.module';
 import { RequestsModule } from '../requests/requests.module';
+import { AttendanceModule } from '../attendance/attendance.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { RequestsModule } from '../requests/requests.module';
     ]),
     LoanRepaymentsModule,
     RequestsModule,
+    AttendanceModule
   ],
   controllers: [PayrollController],
   providers: [PayrollService],

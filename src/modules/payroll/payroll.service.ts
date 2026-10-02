@@ -12,10 +12,12 @@ import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { DataSource } from 'typeorm';
 import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
+import { AttendanceService } from '../attendance/attendance.service';
 import { RequestsService } from '../requests/requests.service';
 import {
   DAYS_PER_SALARY_MONTH,
   HALF_PAID_DEDUCTION_RATE,
+  WEEKEND_DAYS,
 } from './payroll.constants';
 
 @Injectable()
@@ -32,9 +34,61 @@ export class PayrollService {
     private readonly dataSource: DataSource,
     private readonly loanRepaymentsService: LoanRepaymentsService,
     private readonly requestsService: RequestsService,
+    private readonly attendanceService: AttendanceService,    
   ) {}
 
-  
+
+  private async countAbsenceDays(
+    userId: number,
+    salaryMonth: string,
+    hireDate: string | Date,
+  ): Promise<number> {
+    const [yearStr, monthStr] = salaryMonth.split('-');
+    const year = Number(yearStr);
+    const month = Number(monthStr) - 1;
+
+    const monthStart = new Date(Date.UTC(year, month, 1));
+    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
+
+    const now = new Date();
+    const today = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const lastDay = monthEnd < today ? monthEnd : today;
+
+    const hire = new Date(hireDate);
+    const firstDay = hire > monthStart ? hire : monthStart;
+
+    if (lastDay.getTime() < firstDay.getTime()) {
+      return 0;
+    }
+
+    const [attended, onLeave] = await Promise.all([
+      this.attendanceService.getAttendedDates(userId, salaryMonth),
+      this.requestsService.getApprovedLeaveDates(userId, salaryMonth),
+    ]);
+
+    let absenceDays = 0;
+
+    for (let t = firstDay.getTime(); t <= lastDay.getTime(); t += 86400000) {
+      const day = new Date(t);
+
+      if (WEEKEND_DAYS.includes(day.getUTCDay())) {
+        continue;
+      }
+
+      const iso = day.toISOString().split('T')[0];
+
+      if (attended.has(iso) || onLeave.has(iso)) {
+        continue;
+      }
+
+      absenceDays += 1;
+    }
+
+    return absenceDays;
+  }
+
   async generateForEmployee(
     userId: number,
     salaryMonth: string,
@@ -77,10 +131,14 @@ export class PayrollService {
       const halfPaidDeduction =
         halfPaidDays * dailyRate * HALF_PAID_DEDUCTION_RATE;
 
-      const deductions =
-        Math.round(
-          (loanInstallment + unpaidDeduction + halfPaidDeduction) * 100,
-        ) / 100;
+      const absenceDays = await this.countAbsenceDays(
+        userId,
+        salaryMonth,
+        profile.hire_date,
+      );
+      const absenceDeduction = absenceDays * dailyRate;  
+
+      const deductions = Math.round((loanInstallment + unpaidDeduction + halfPaidDeduction + absenceDeduction) * 100, ) / 100;
 
       const netSalary = Math.round((basicSalary + bonuses - deductions) * 100) / 100;
 
@@ -106,7 +164,8 @@ export class PayrollService {
       this.logger.log(
         `Payroll #${payroll.payroll_id} for user #${userId} (${salaryMonth}) — ` +
           `basic ${basicSalary}, bonuses ${bonuses}, loan ${loanInstallment}, ` +
-          `unpaid ${unpaidDays}d, half-paid ${halfPaidDays}d, net ${netSalary}`,
+          `unpaid ${unpaidDays}d, half-paid ${halfPaidDays}d, ` +
+          `absent ${absenceDays}d, net ${netSalary}`,
       );
 
       return payroll;
