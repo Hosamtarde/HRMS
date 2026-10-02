@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from '../../app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserEntity } from './modules/users/user.entity';
-import { Role } from './common/enums/enums';
+import { UserEntity } from '../../modules/users/user.entity';
+import { Role } from '../../common/enums/enums';
 import { Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 const logger = new Logger('Seed');
@@ -31,6 +31,7 @@ async function seedUser(
   });
   await repo.save(user);
   logger.log(`Created ${role} => email: ${email} | password: ${password}`);
+}
 
 async function seed() {
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -42,4 +43,3 @@ async function seed() {
   await app.close();
 }
 seed();
-}
