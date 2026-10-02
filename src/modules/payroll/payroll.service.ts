@@ -10,6 +10,13 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { UpdatePayrollDto } from './dto/update-payroll.dto';
+import { DataSource } from 'typeorm';
+import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
+import { RequestsService } from '../requests/requests.service';
+import {
+  DAYS_PER_SALARY_MONTH,
+  HALF_PAID_DEDUCTION_RATE,
+} from './payroll.constants';
 
 @Injectable()
 export class PayrollService {
@@ -22,57 +29,89 @@ export class PayrollService {
     private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
     @InjectRepository(RequestEntity)
     private readonly requestsRepository: Repository<RequestEntity>,
+    private readonly dataSource: DataSource,
+    private readonly loanRepaymentsService: LoanRepaymentsService,
+    private readonly requestsService: RequestsService,
   ) {}
 
   
-  private async calculateLoanDeduction(userId: number): Promise<number> {
-    const approvedLoan = await this.requestsRepository.findOne({
-      where: {
-        user_id: userId,
-        request_type: RequestType.LOAN,
-        request_status: RequestStatus.APPROVED,
-      },
+  async generateForEmployee(
+    userId: number,
+    salaryMonth: string,
+    bonuses = 0,
+  ): Promise<PayrollEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const profilesRepo = manager.getRepository(EmployeeProfileEntity);
+      const payrollRepo = manager.getRepository(PayrollEntity);
+
+      const profile = await profilesRepo.findOne({ where: { user_id: userId } });
+
+      if (!profile) {
+        throw new NotFoundException(`Employee profile #${userId} not found`);
+      }
+
+      const existing = await payrollRepo.findOne({
+        where: { user_id: userId, salary_month: salaryMonth },
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          `Payroll for this employee already generated for ${salaryMonth}`,
+        );
+      }
+
+      const basicSalary = Number(profile.basic_salary);
+      const dailyRate = basicSalary / DAYS_PER_SALARY_MONTH;
+
+      const loanInstallment =
+        await this.loanRepaymentsService.consumeNextInstallment(
+          manager,
+          userId,
+          null,
+        );
+
+      const { unpaidDays, halfPaidDays } =
+        await this.requestsService.getLeaveDaysInMonth(userId, salaryMonth);
+
+      const unpaidDeduction = unpaidDays * dailyRate;
+      const halfPaidDeduction =
+        halfPaidDays * dailyRate * HALF_PAID_DEDUCTION_RATE;
+
+      const deductions =
+        Math.round(
+          (loanInstallment + unpaidDeduction + halfPaidDeduction) * 100,
+        ) / 100;
+
+      const netSalary = Math.round((basicSalary + bonuses - deductions) * 100) / 100;
+
+      const payroll = await payrollRepo.save(
+        payrollRepo.create({
+          user_id: userId,
+          basic_salary: basicSalary,
+          bonuses,
+          deductions,
+          net_salary: netSalary,
+          salary_month: salaryMonth,
+        }),
+      );
+
+      if (loanInstallment > 0) {
+        await this.loanRepaymentsService.attachPayroll(
+          manager,
+          userId,
+          payroll.payroll_id,
+        );
+      }
+
+      this.logger.log(
+        `Payroll #${payroll.payroll_id} for user #${userId} (${salaryMonth}) — ` +
+          `basic ${basicSalary}, bonuses ${bonuses}, loan ${loanInstallment}, ` +
+          `unpaid ${unpaidDays}d, half-paid ${halfPaidDays}d, net ${netSalary}`,
+      );
+
+      return payroll;
     });
-
-    if (!approvedLoan || !approvedLoan.loan_amount || !approvedLoan.repayment_period) {
-      return 0;
-    }
-
-    return Number(approvedLoan.loan_amount) / approvedLoan.repayment_period;
   }
-
-  async generateForEmployee(userId: number, salaryMonth: string, bonuses = 0): Promise<PayrollEntity> {
-    const profile = await this.employeeProfilesRepository.findOne({
-      where: { user_id: userId },
-    });
-
-    if (!profile) {
-      throw new NotFoundException(`Employee profile #${userId} not found`);
-    }
-
-    const existing = await this.payrollRepository.findOne({
-      where: { user_id: userId, salary_month: salaryMonth },
-    });
-    if (existing) {
-      throw new BadRequestException(`Payroll for this employee already generated for ${salaryMonth}`);
-    }
-
-    const basicSalary = Number(profile.basic_salary);
-    const loanDeduction = await this.calculateLoanDeduction(userId);
-    const netSalary = basicSalary + bonuses - loanDeduction;
-
-    const payroll = this.payrollRepository.create({
-      user_id: userId,
-      basic_salary: basicSalary,
-      bonuses,
-      deductions: loanDeduction,
-      net_salary: netSalary,
-      salary_month: salaryMonth,
-    });
-
-    return this.payrollRepository.save(payroll);
-  }
-
   
   async generate(
     dto: GeneratePayrollDto,
