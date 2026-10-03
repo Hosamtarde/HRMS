@@ -46,10 +46,20 @@ export class DepartmentsService {
     return this.departmentsRepository.save(department);
   }
 
-  async update(id: number, dto: UpdateDepartmentDto): Promise<DepartmentEntity> {
-    const department = await this.findOne(id);
+   async update(id: number, dto: UpdateDepartmentDto): Promise<DepartmentEntity> {
+
+    const department = await this.departmentsRepository.findOne({
+      where: { department_id: id },
+    });
+
+    if (!department) {
+      throw new NotFoundException(`Department #${id} not found`);
+    }
+
     Object.assign(department, dto);
-    return this.departmentsRepository.save(department);
+    await this.departmentsRepository.save(department);
+
+    return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {
