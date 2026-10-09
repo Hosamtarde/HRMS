@@ -4,7 +4,7 @@
 
 # Human Resource Management System (HRMS)
 
-**Graduation Project — Palestine Polytechnic University**g
+**Graduation Project — Palestine Polytechnic University**
 College of Information Technology and Computer Engineering · Department of IT and Computer Science
 
 [![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
