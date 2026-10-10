@@ -19,6 +19,7 @@ import { ActivityLogInterceptor } from './common/interceptors/activity-log.inter
 import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
 import { LeaveBalancesModule } from './modules/leave-balances/leave-balances.module';
 import { LoanRepaymentsModule } from './modules/loan-repayments/loan-repayments.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { LoanRepaymentsModule } from './modules/loan-repayments/loan-repayments.
     LeaveTypesModule,
     LeaveBalancesModule,
     LoanRepaymentsModule,
+    PerformanceModule,
   ],
   controllers: [AppController],
   providers: [
