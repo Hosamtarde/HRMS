@@ -5,6 +5,8 @@ import { EvaluationPlanEntity } from './evaluation-plan.entity';
 import { PlanCriterionEntity } from './plan-criterion.entity';
 import { PerformanceCategoriesService } from './performance-categories.service';
 import { PerformanceCategoriesController } from './performance-categories.controller';
+import { PerformanceReviewEntity } from './performance-review.entity';
+import { EvaluationScoreEntity } from './evaluation-score.entity';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { PerformanceCategoriesController } from './performance-categories.contro
       CriteriaCategoryEntity,
       EvaluationPlanEntity,
       PlanCriterionEntity,
+      PerformanceReviewEntity,
+      EvaluationScoreEntity,
     ]),
   ],
   controllers: [PerformanceCategoriesController],
