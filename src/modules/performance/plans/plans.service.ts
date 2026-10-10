@@ -8,15 +8,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { EvaluationPlanEntity } from './evaluation-plan.entity';
 import { PlanCriterionEntity } from './plan-criterion.entity';
-import { CriteriaCategoryEntity } from './criteria-category.entity';
+import { CriteriaCategoryEntity } from '../categories/criteria-category.entity';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CriterionDto } from './dto/criterion.dto';
-import { DEFAULT_MAX_SCORE } from './performance.constants';
-import { PlanStatus } from '../../common/enums/enums';
+import { DEFAULT_MAX_SCORE } from '../performance.constants';
+import { PlanStatus } from '../../../common/enums/enums';
 
 @Injectable()
-export class PerformancePlansService {
-  private readonly logger = new Logger(PerformancePlansService.name);
+export class PlansService {
+  private readonly logger = new Logger(PlansService.name);
 
   constructor(
     @InjectRepository(EvaluationPlanEntity)

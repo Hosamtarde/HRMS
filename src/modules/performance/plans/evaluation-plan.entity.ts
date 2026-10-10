@@ -7,10 +7,10 @@ import {
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { DepartmentEntity } from '../departments/department.entity';
-import { UserEntity } from '../users/user.entity';
+import { DepartmentEntity } from '../../departments/department.entity';
+import { UserEntity } from '../../users/user.entity';
 import { PlanCriterionEntity } from './plan-criterion.entity';
-import { PlanStatus } from '../../common/enums/enums';
+import { PlanStatus } from '../../../common/enums/enums';
 
 @Entity('evaluation_plans')
 export class EvaluationPlanEntity {

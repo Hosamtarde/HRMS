@@ -9,7 +9,7 @@ import {
   Max,
   IsOptional,
 } from 'class-validator';
-import { DEFAULT_MAX_SCORE, TOTAL_WEIGHT } from '../performance.constants';
+import { DEFAULT_MAX_SCORE, TOTAL_WEIGHT } from '../../performance.constants';
 
 export class CriterionDto {
   @ApiProperty({ example: 1, description: 'An active criteria category.' })

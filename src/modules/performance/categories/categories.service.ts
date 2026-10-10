@@ -11,8 +11,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
-export class PerformanceCategoriesService {
-  private readonly logger = new Logger(PerformanceCategoriesService.name);
+export class CategoriesService {
+  private readonly logger = new Logger(CategoriesService.name);
 
   constructor(
     @InjectRepository(CriteriaCategoryEntity)

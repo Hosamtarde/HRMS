@@ -9,10 +9,10 @@ import {
   Index,
   Unique,
 } from 'typeorm';
-import { EvaluationPlanEntity } from './evaluation-plan.entity';
+import { EvaluationPlanEntity } from '../plans/evaluation-plan.entity';
 import { EvaluationScoreEntity } from './evaluation-score.entity';
-import { UserEntity } from '../users/user.entity';
-import { ReviewStatus } from '../../common/enums/enums';
+import { UserEntity } from '../../users/user.entity';
+import { ReviewStatus } from '../../../common/enums/enums';
 
 
 @Entity('performance_reviews')

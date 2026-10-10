@@ -11,20 +11,20 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { PerformanceCategoriesService } from './performance-categories.service';
+import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { Role } from '../../common/enums/enums';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { Role } from '../../../common/enums/enums';
 
 @ApiBearerAuth()
 @Controller('performance/categories')
 @UseGuards(JwtAuthGuard, RolesGuard)
-export class PerformanceCategoriesController {
+export class CategoriesController {
   constructor(
-    private readonly categoriesService: PerformanceCategoriesService,
+    private readonly categoriesService: CategoriesService,
   ) {}
 
   @Get()

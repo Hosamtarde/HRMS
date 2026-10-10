@@ -7,8 +7,8 @@ import {
   Index,
 } from 'typeorm';
 import { EvaluationPlanEntity } from './evaluation-plan.entity';
-import { CriteriaCategoryEntity } from './criteria-category.entity';
-import { DEFAULT_MAX_SCORE } from './performance.constants';
+import { CriteriaCategoryEntity } from '../categories/criteria-category.entity';
+import { DEFAULT_MAX_SCORE } from '../performance.constants';
 
 @Entity('plan_criteria')
 @Index(['plan_id', 'display_order'])
