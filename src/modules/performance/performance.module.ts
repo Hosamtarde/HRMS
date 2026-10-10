@@ -7,6 +7,7 @@ import { PerformanceCategoriesService } from './performance-categories.service';
 import { PerformanceCategoriesController } from './performance-categories.controller';
 import { PerformanceReviewEntity } from './performance-review.entity';
 import { EvaluationScoreEntity } from './evaluation-score.entity';
+import { PerformancePlansService } from './performance-plans.service';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EvaluationScoreEntity } from './evaluation-score.entity';
       PlanCriterionEntity,
       PerformanceReviewEntity,
       EvaluationScoreEntity,
+      PerformancePlansService,
     ]),
   ],
   controllers: [PerformanceCategoriesController],
