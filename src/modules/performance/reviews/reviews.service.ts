@@ -111,6 +111,47 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
+    async reopen(
+    reviewId: number,
+    hrUserId: number,
+  ): Promise<PerformanceReviewEntity> {
+    await this.dataSource.transaction(async (manager) => {
+      const review = await manager.findOne(PerformanceReviewEntity, {
+        where: { review_id: reviewId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!review) {
+        throw new NotFoundException(`Review #${reviewId} not found`);
+      }
+      if (review.review_status !== ReviewStatus.SUBMITTED) {
+        throw new BadRequestException(
+          'This review has not been submitted, so there is nothing to reopen',
+        );
+      }
+
+      const plan = await manager.findOne(EvaluationPlanEntity, {
+        where: { plan_id: review.plan_id },
+      });
+      if (!plan) {
+        throw new NotFoundException(`Evaluation plan #${review.plan_id} not found`);
+      }
+      this.assertSubmissionWindowIsOpen(plan);
+
+      review.review_status = ReviewStatus.PENDING;
+      review.reviewed_by = null as unknown as number;
+      review.total_score = null as unknown as number;
+      review.final_percentage = null as unknown as number;
+      review.submitted_at = null as unknown as Date;
+      await manager.save(review);
+
+      this.logger.log(
+        `Review #${reviewId} reopened by HR user #${hrUserId}`,
+      );
+    });
+
+    return this.findOne(reviewId);
+  }
+
   async findOne(id: number, viewer?: Reviewer): Promise<PerformanceReviewEntity> {
     const review = await this.reviewsRepository.findOne({
       where: { review_id: id },

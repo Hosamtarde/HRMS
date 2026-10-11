@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Patch,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -58,5 +59,14 @@ export class ReviewsController {
     @CurrentUser() user: { user_id: number; role: Role },
   ) {
     return this.reviewsService.submit(id, dto, user);
+  }
+
+  @Patch(':id/reopen')
+  @Roles(Role.HR_ADMIN)
+  reopen(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: { user_id: number },
+  ) {
+    return this.reviewsService.reopen(id, user.user_id);
   }
 }
