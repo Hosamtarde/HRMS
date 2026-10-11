@@ -22,9 +22,32 @@ import { Role } from '../../../common/enums/enums';
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
+  @Get('pending')
+  @Roles(Role.MANAGER, Role.HR_ADMIN)
+  findPending(@CurrentUser() user: { user_id: number; role: Role }) {
+    return this.reviewsService.findPendingFor(user);
+  }
+
+  @Get('me')
+  findMine(@CurrentUser() user: { user_id: number }) {
+    return this.reviewsService.findMine(user.user_id);
+  }
+
+  @Get('employee/:userId')
+  @Roles(Role.MANAGER, Role.HR_ADMIN)
+  findForEmployee(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() user: { user_id: number; role: Role },
+  ) {
+    return this.reviewsService.findForEmployee(userId, user);
+  }
+
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.reviewsService.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: { user_id: number; role: Role },
+  ) {
+    return this.reviewsService.findOne(id, user);
   }
 
   @Put(':id/submit')

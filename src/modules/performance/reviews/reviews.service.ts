@@ -15,7 +15,7 @@ import { EmployeeProfileEntity } from '../../employees/employee-profile.entity';
 import { SubmitReviewDto } from './dto/submit-review.dto';
 import { ScoreItemDto } from './dto/score-item.dto';
 import { ReviewStatus, PlanStatus, Role } from '../../../common/enums/enums';
-
+import { DepartmentEntity } from '../../departments/department.entity';
 
 interface Reviewer {
   user_id: number;
@@ -111,7 +111,7 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
-  async findOne(id: number): Promise<PerformanceReviewEntity> {
+  async findOne(id: number, viewer?: Reviewer): Promise<PerformanceReviewEntity> {
     const review = await this.reviewsRepository.findOne({
       where: { review_id: id },
       relations: {
@@ -124,9 +124,98 @@ export class ReviewsService {
     if (!review) {
       throw new NotFoundException(`Review #${id} not found`);
     }
+    if (viewer) {
+      await this.assertCanBeSeenBy(review, viewer);
+    }
     return review;
   }
 
+  async findPendingFor(reviewer: Reviewer): Promise<PerformanceReviewEntity[]> {
+    const rows = await this.reviewsRepository.find({
+      where: { review_status: ReviewStatus.PENDING },
+      relations: { plan: true, reviewedUser: true },
+      order: { plan_id: 'ASC', reviewed_user_id: 'ASC' },
+    });
+
+    if (reviewer.role === Role.HR_ADMIN) {
+      return rows.filter((r) => r.plan?.plan_status === PlanStatus.ACTIVE);
+    }
+
+    const managed = await this.findUsersManagedBy(reviewer.user_id);
+    return rows.filter(
+      (r) =>
+        r.plan?.plan_status === PlanStatus.ACTIVE &&
+        managed.has(r.reviewed_user_id),
+    );
+  }
+
+  async findMine(userId: number): Promise<PerformanceReviewEntity[]> {
+    return this.reviewsRepository.find({
+      where: {
+        reviewed_user_id: userId,
+        review_status: ReviewStatus.SUBMITTED,
+      },
+      relations: { plan: true, scores: { criterion: { category: true } } },
+      order: { submitted_at: 'DESC' },
+    });
+  }
+
+  async findForEmployee(
+    userId: number,
+    viewer: Reviewer,
+  ): Promise<PerformanceReviewEntity[]> {
+    if (viewer.role !== Role.HR_ADMIN) {
+      const managed = await this.findUsersManagedBy(viewer.user_id);
+      if (!managed.has(userId)) {
+        throw new ForbiddenException(
+          'You can only see the history of employees in the department you manage',
+        );
+      }
+    }
+    return this.reviewsRepository.find({
+      where: { reviewed_user_id: userId, review_status: ReviewStatus.SUBMITTED },
+      relations: { plan: true },
+      order: { submitted_at: 'DESC' },
+    });
+  }
+
+  private async assertCanBeSeenBy(
+    review: PerformanceReviewEntity,
+    viewer: Reviewer,
+  ): Promise<void> {
+    if (viewer.role === Role.HR_ADMIN) return;
+
+    if (review.reviewed_user_id === viewer.user_id) {
+      if (review.review_status !== ReviewStatus.SUBMITTED) {
+        throw new ForbiddenException(
+          'This review has not been submitted yet',
+        );
+      }
+      return;
+    }
+
+    if (viewer.role === Role.MANAGER) {
+      const managed = await this.findUsersManagedBy(viewer.user_id);
+      if (managed.has(review.reviewed_user_id)) return;
+    }
+
+    throw new ForbiddenException('This review is not yours to read');
+  }
+
+  private async findUsersManagedBy(managerId: number): Promise<Set<number>> {
+    const rows = await this.dataSource
+      .createQueryBuilder(EmployeeProfileEntity, 'profile')
+      .innerJoin(
+        DepartmentEntity,
+        'department',
+        'department.department_id = profile.department_id',
+      )
+      .select('profile.user_id', 'user_id')
+      .where('department.manager_id = :managerId', { managerId })
+      .andWhere('profile.user_id != :managerId', { managerId })
+      .getRawMany<{ user_id: number }>();
+    return new Set(rows.map((r) => r.user_id));
+  }
   private async assertReviewerIsAllowed(
     manager: EntityManager,
     reviewedUserId: number,
