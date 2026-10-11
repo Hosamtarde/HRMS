@@ -14,7 +14,8 @@ import { PlanCriterionEntity } from '../plans/plan-criterion.entity';
 import { EmployeeProfileEntity } from '../../employees/employee-profile.entity';
 import { SubmitReviewDto } from './dto/submit-review.dto';
 import { ScoreItemDto } from './dto/score-item.dto';
-import { PlanStatus, ReviewStatus, Role } from '../../../common/enums/enums';
+import { ReviewStatus, PlanStatus, Role } from '../../../common/enums/enums';
+
 
 interface Reviewer {
   user_id: number;
