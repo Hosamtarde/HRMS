@@ -15,8 +15,9 @@ College of Information Technology and Computer Engineering · Department of IT a
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
-[![Progress](https://img.shields.io/badge/modules-8%2F12%20completed-brightgreen?style=flat-square)]()
-[![Routes](https://img.shields.io/badge/API%20routes-56%20mapped-blue?style=flat-square)]()
+[![Progress](https://img.shields.io/badge/modules-9%2F12%20completed-brightgreen?style=flat-square)]()
+[![Routes](https://img.shields.io/badge/API%20routes-76%20mapped-blue?style=flat-square)]()
+[![Tables](https://img.shields.io/badge/DB%20tables-17%20migrations-orange?style=flat-square)]()
 [![Screens](https://img.shields.io/badge/UI%20screens-44%20designed-9146FF?style=flat-square)]()
 [![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
@@ -29,13 +30,14 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 **HRMS** هو نظام إدارة موارد بشرية حديث، مصمم ليكون بديلاً بسيطاً وفعّالاً وبأسعار معقولة عن الأنظمة العالمية المعقدة (Workday, SAP SuccessFactors) للشركات الصغيرة والمتوسطة.
 
-النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، المهام، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
+النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، المهام، تقييم الأداء، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
 
 | | |
 |---|---|
 | **المستودع** | <https://github.com/Hosamtarde/HRMS> |
 | **الواجهة الخلفية** | NestJS + TypeScript · MySQL · TypeORM Migrations |
-| **عدد الـ Endpoints الحالية** | 56 route |
+| **عدد الـ Endpoints الحالية** | 76 route |
+| **عدد الـ Migrations** | 17 |
 | **عدد شاشات التصميم** | 44 شاشة (4 أدوار + نسخة موبايل + نسخة عربية RTL) |
 | **لغات الواجهة** | إنجليزي (LTR) + عربي (RTL) — كل شاشة فيها مفتاح تبديل |
 
@@ -100,6 +102,20 @@ College of Information Technology and Computer Engineering · Department of IT a
 <tr>
 <td><img src="docs/screenshots/application-detail.png" alt="Application detail" /><p align="center"><em>تفاصيل طلب التوظيف والسيرة الذاتية</em></p></td>
 <td><img src="docs/screenshots/tasks.png" alt="Tasks" /><p align="center"><em>إدارة المهام</em></p></td>
+</tr>
+</table>
+
+---
+
+### 📈 تقييم الأداء
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/performance-plan.png" alt="Build an evaluation plan" /><p align="center"><em>بناء خطة تقييم: المعايير وأوزانها ونافذة التسليم</em></p></td>
+<td width="50%"><img src="docs/screenshots/performance-reviews.png" alt="Reviews list" /><p align="center"><em>متابعة التقييمات: مين سلّم ومين لسا</em></p></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/performance-submit.png" alt="Submit a review" /><p align="center"><em>تعبئة تقييم موظف — المدير يعطي درجة لكل معيار</em></p></td>
 </tr>
 </table>
 
@@ -185,12 +201,8 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/performance-plan.png" alt="Performance plan" /><p align="center"><em>بناء خطة تقييم أداء (Module 9)</em></p></td>
-<td width="50%"><img src="docs/screenshots/performance-submit.png" alt="Performance submit" /><p align="center"><em>تعبئة تقييم موظف (Module 9)</em></p></td>
-</tr>
-<tr>
-<td><img src="docs/screenshots/notifications.png" alt="Notifications" /><p align="center"><em>الإشعارات (Module 10)</em></p></td>
-<td><img src="docs/screenshots/reports.png" alt="Reports" /><p align="center"><em>التقارير والتحليلات (Module 11)</em></p></td>
+<td width="50%"><img src="docs/screenshots/notifications.png" alt="Notifications" /><p align="center"><em>الإشعارات (Module 10)</em></p></td>
+<td width="50%"><img src="docs/screenshots/reports.png" alt="Reports" /><p align="center"><em>التقارير والتحليلات (Module 11)</em></p></td>
 </tr>
 </table>
 
@@ -224,9 +236,9 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | الدور | الصلاحيات |
 |---|---|
 | **Applicant** | يقدّم على وظائف ويتابع حالة طلبه — بدون تسجيل دخول |
-| **Employee** | بياناته الشخصية، الحضور والانصراف، تقديم الطلبات، رصيد إجازاته، كشوف رواتبه، ومهامه |
-| **Manager** | كل صلاحيات Employee + الموافقة/الرفض على طلبات موظفيه، متابعة حضور الفريق، وإدارة المهام |
-| **HR Admin** | صلاحية كاملة: الموظفون، الأقسام، أنواع الإجازات والأرصدة، الرواتب، التوظيف، والأدوار |
+| **Employee** | بياناته الشخصية، الحضور والانصراف، تقديم الطلبات، رصيد إجازاته، كشوف رواتبه، مهامه، ونتائج تقييمه |
+| **Manager** | كل صلاحيات Employee + الموافقة/الرفض على طلبات موظفيه، متابعة حضور الفريق، إدارة المهام، وتقييم أداء موظفي قسمه |
+| **HR Admin** | صلاحية كاملة: الموظفون، الأقسام، أنواع الإجازات والأرصدة، الرواتب، التوظيف، خطط التقييم، والأدوار |
 
 ---
 
@@ -253,7 +265,7 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | 6 | **Recruitment** | ✅ | تقديم عام بدون تسجيل + رفع CV مع تحقق من النوع والحجم |
 | 7 | **Task Management** | ✅ | علاقة Many-to-Many، تعيين متعدد، نسبة إنجاز لكل موظف |
 | 8 | **Payroll Management** | ✅ | راتب صافٍ تلقائي من 4 مصادر خصم مربوطة بـ 3 موديولات |
-| 9 | **Performance Evaluation** | ⏳ | خطط تقييم بمعايير وأوزان، تقييم المدير، نسبة نهائية |
+| 9 | **Performance Evaluation** | ✅ | 5 جداول، خطط بمعايير وأوزان مجموعها 100، نسبة نهائية موزونة |
 | 10 | **Notifications** | ⏳ | — |
 | 11 | **Reports & Analytics** | ⏳ | — |
 | 12 | **RBAC — مراجعة نهائية** | ⏳ | — |
@@ -314,9 +326,63 @@ if (dto.status === RequestStatus.APPROVED && request.request_type === RequestTyp
 
 وبعد الموافقة بينتقل من `available_days` إلى `used_days` — ضمن Transaction مع قفل (`pessimistic_write`) يمنع الموافقة المتزامنة على طلبين لنفس الموظف.
 
-### 5️⃣ التحقق من الملكية قبل التحقق من الحالة
+### 5️⃣ معايير التقييم تُثبَّت مع الخطة، لا مع النظام
 
-عند حذف طلب، الترتيب مقصود: الكود بيفحص **ملكية الطلب أولاً** ثم حالته — لأنه العكس بيسرّب معلومة عن وجود وحالة طلب شخص تاني عبر رسالة الخطأ.
+المعايير **ما بتنكتب بالكود** — الـ HR بيحددها. وبتنتمي لـ **خطة تقييم** مش للنظام عامةً، عشان لو عدّل المعايير بعد ربع سنة، نتائج الربع الماضي تضل مفهومة.
+
+```
+final_percentage = Σ ( score ÷ max_score × weight )
+```
+
+مثال على خطة بتلات معايير (`max_score = 5` لكل واحد):
+
+| المعيار | الوزن | الدرجة | الحساب | الناتج |
+|---|---|---|---|---|
+| جودة العمل | 40 | 4 / 5 | 4 ÷ 5 × 40 | 32.00 |
+| التعاون | 30 | 5 / 5 | 5 ÷ 5 × 30 | 30.00 |
+| الالتزام بالمواعيد | 30 | 3 / 5 | 3 ÷ 5 × 30 | 18.00 |
+| **المجموع** | **100** | — | — | **80.00** |
+
+بنخزّن الاتنين: الدرجة الخام (12 من 15) للمراجعة، والنسبة الموزونة (80.00) للمقارنة بين الموظفين.
+
+**دورة حياة الخطة:** `draft` → `active` → `closed`
+
+- **`draft`** — الـ HR لسا بيبني. تعديل وحذف مسموح. ولا ورقة تقييم موجودة
+- **`active`** — المعايير تجمّدت، وانولدت ورقة `pending` لكل موظف بالنطاق
+- **`closed`** — سجل للقراءة فقط
+
+**فحص الأوزان بيصير عند التفعيل، مش عند الحفظ** — عشان الـ HR يقدر يحفظ مسودة ناقصة ويكمّلها بكرا. والمقارنة بتصير بالمئات:
+
+```typescript
+if (Math.round(total * 100) !== TOTAL_WEIGHT * 100)
+```
+
+لأنه الـ `decimal` بيرجع من TypeORM كنص، ولأنه `33.33 + 33.33 + 33.34` ما بتساوي `100` بالضبط بالفاصلة العائمة.
+
+### 6️⃣ المدير يُقيَّم، لكن ليس بيده
+
+المدير بينولدله ورقة تقييم زي أي موظف — بس **الـ HR هو الي بيعبّيها**:
+
+```
+إذا كان المُقيَّم هو مدير القسم  →  المُقيِّم لازم يكون HR Admin
+غير هيك                        →  المُقيِّم لازم يكون مدير قسم الموظف
+```
+
+والمقارنة بتصير مع `departments.manager_id` مش مع "قسم المدير" — عشان لو كان في مدير سابق لسا موظف بالقسم، ما يقدر يقيّم.
+
+### 7️⃣ التسليم باتجاه واحد
+
+بعد ما المدير يسلّم، ما بيقدر يعدّل. **الـ HR وحده** بيقدر يعيد الفتح عبر `PATCH /performance/reviews/:id/reopen` — والي بيصير وقتها:
+
+- الحالة بترجع `pending` والنتيجة المحسوبة بتنمسح
+- **بس الدرجات بتضل معبّاية** — المدير بيصلّح الغلط بدل ما يعيد تعبئة كل المعايير
+- ومرفوض لو الخطة `closed` أو النافذة سكّرت
+
+تقييم بيتعدّل متى ما بدّه المدير ما إله قيمة.
+
+### 8️⃣ التحقق من الملكية قبل التحقق من الحالة
+
+عند حذف طلب أو تسليم تقييم، الترتيب مقصود: الكود بيفحص **الصلاحية أولاً** ثم الحالة — لأنه العكس بيسرّب معلومة عن وجود وحالة سجل شخص تاني عبر رسالة الخطأ.
 
 ---
 
@@ -327,14 +393,17 @@ if (dto.status === RequestStatus.APPROVED && request.request_type === RequestTyp
 | **TypeORM Migrations** | تتبع تغييرات قاعدة البيانات بملفات مرقّمة بدل الاعتماد على `synchronize` التلقائي |
 | **Global Exception Filter** | كل الأخطاء ترجع بشكل موحّد: `statusCode`, `message`, `path`, `timestamp` |
 | **Global Validation Pipe** | تحقق تلقائي وصارم من كل البيانات الواردة عبر DTOs مع `forbidNonWhitelisted` |
+| **Nested Validation** | المصفوفات المتداخلة (معايير الخطة، درجات التقييم) محمية بـ `@ValidateNested` + `@Type` معاً |
 | **Response Interceptor** | كل الردود الناجحة موحّدة الشكل: `{ success, data, timestamp }` |
 | **Swagger / OpenAPI** | توثيق تفاعلي كامل لكل الـ Endpoints |
 | **Helmet** | رؤوس أمان HTTP قياسية لحماية من الهجمات الشائعة |
 | **Rate Limiting** | حد عام 10 طلبات/دقيقة، وحد أشد (5 طلبات/دقيقة) على `/auth/login` لمنع Brute Force |
 | **RBAC** | حماية كل Endpoint حساس بالدور المناسب عبر `@Roles()` + `RolesGuard` |
-| **Transactional Operations** | العمليات الحساسة (إنشاء موظف، موافقة على سلفة، تعيين مهمة لعدة موظفين) ضمن Transaction |
-| **Pessimistic Locking** | قفل على صف رصيد الإجازة أثناء الموافقة لمنع تعارض التحديثات المتزامنة |
-| **Soft Delete** | تعطيل الحسابات بدل الحذف الفعلي، للحفاظ على البيانات التاريخية المرتبطة |
+| **Transactional Operations** | العمليات الحساسة (إنشاء موظف، موافقة على سلفة، تفعيل خطة، تسليم تقييم) ضمن Transaction |
+| **Pessimistic Locking** | قفل على رصيد الإجازة وعلى الخطة والتقييم، لمنع التفعيل أو التسليم المزدوج |
+| **Database-level Constraints** | `UNIQUE(plan_id, reviewed_user_id)` و Composite PK — القواعد محروسة من قاعدة البيانات مش من الكود وحده |
+| **Composite Indexes** | إندكسات مركّبة على استعلامات القوائم المتكررة بدل Full Table Scan |
+| **Soft Delete** | تعطيل الحسابات والفئات بدل الحذف الفعلي، للحفاظ على البيانات التاريخية المرتبطة |
 | **Ownership-based Filtering** | كل مستخدم يشوف بياناته الخاصة بس (ما لم يكن Manager/HR Admin) |
 | **Cross-Module Integration** | Payroll يقرأ من Employees و Requests و Attendance لحساب الراتب الصافي تلقائياً |
 | **Centralized Enums** | كل الـ enums في ملف واحد `common/enums/enums.ts` — مصدر واحد للحقيقة |
@@ -367,7 +436,7 @@ docker compose up -d
 # 5. تشغيل الـ Migrations (بناء الجداول)
 npm run migration:run
 
-# 6. إضافة مستخدمين تجريبيين (HR Admin + Employee)
+# 6. إضافة بيانات أولية (مستخدمين + فئات معايير التقييم)
 npm run seed
 
 # 7. تشغيل السيرفر
@@ -387,6 +456,8 @@ npm run start:dev
 | HR Admin | `admin@hrms.com` | `admin123` |
 | Employee | `employee@hrms.com` | `employee123` |
 
+الـ seed بيضيف كمان **5 فئات معايير** جاهزة (جودة العمل، الالتزام بالمواعيد، التعاون، المبادرة، الانضباط) — وقابل لإعادة التشغيل بدون تعارض.
+
 ---
 
 ## 🗃️ التعامل مع قاعدة البيانات (Migrations)
@@ -395,10 +466,13 @@ npm run start:dev
 
 ```bash
 # بعد إضافة/تعديل أي Entity
-npm run migration:generate -- src/migrations/اسم-وصفي-للتغيير
+npm run migration:generate -- src/database/migrations/DescriptiveName
 
 # لتطبيق الـ Migration على قاعدة البيانات
 npm run migration:run
+
+# لعرض حالة كل الـ Migrations
+npm run migration:show
 
 # للتراجع عن آخر Migration (عند الحاجة)
 npm run migration:revert
@@ -407,14 +481,14 @@ npm run migration:revert
 **نسخة احتياطية من قاعدة البيانات** (مع ضمان ترميز العربية):
 
 ```bash
-docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 hrms_db > backup.sql
+docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-set=utf8mb4 hrms_db > backup.sql
 ```
 
 ---
 
 ## 🔑 نقاط الوصول (API Endpoints)
 
-> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **56 route**.
+> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **76 route**.
 
 ### Authentication
 | Method | Endpoint | الوصف | الحماية |
@@ -423,6 +497,13 @@ docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 
 | `POST` | `/auth/refresh` | تجديد الـ Access Token | عام |
 | `GET` | `/auth/me` | بيانات المستخدم الحالي | 🔒 مسجل دخول |
 | `POST` | `/auth/logout` | تسجيل الخروج | 🔒 مسجل دخول |
+
+### Users
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/users/me` | ملفي الشخصي | 🔒 مسجل دخول |
+| `PUT` | `/users/me` | تعديل بياناتي | 🔒 مسجل دخول |
+| `PATCH` | `/users/me/password` | تغيير كلمة المرور | 🔒 مسجل دخول |
 
 ### Departments
 | Method | Endpoint | الوصف | الحماية |
@@ -463,12 +544,15 @@ docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
 | `GET` | `/leave-types` | عرض أنواع الإجازات وسياساتها | 🔒 مسجل دخول |
+| `GET` | `/leave-types/:id` | عرض نوع إجازة | 🔒 مسجل دخول |
 | `POST` | `/leave-types` | إضافة نوع إجازة | 🔒 HR Admin |
 | `PUT` | `/leave-types/:id` | تعديل نوع إجازة | 🔒 HR Admin |
 | `DELETE` | `/leave-types/:id` | حذف نوع إجازة | 🔒 HR Admin |
+| `GET` | `/leave-balances/me` | رصيدي | 🔒 مسجل دخول |
 | `GET` | `/leave-balances` | عرض أرصدة الإجازات *(بفلتر `?year=`)* | 🔒 HR Admin |
-| `POST` | `/leave-balances/calculate` | احتساب/تجديد الأرصدة السنوية لكل الموظفين | 🔒 HR Admin |
+| `GET` | `/leave-balances/:id` | عرض رصيد واحد | 🔒 HR Admin |
 | `PUT` | `/leave-balances/:id` | تعديل رصيد يدوياً | 🔒 HR Admin |
+| `POST` | `/leave-balances/calculate` | احتساب/تجديد الأرصدة السنوية لكل الموظفين | 🔒 HR Admin |
 
 ### Loan Repayments *(للقراءة فقط)*
 | Method | Endpoint | الوصف | الحماية |
@@ -482,6 +566,7 @@ docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 
 | `GET` | `/recruitment` | عرض كل طلبات التوظيف | 🔒 HR Admin |
 | `GET` | `/recruitment/:id` | عرض طلب توظيف واحد | 🔒 HR Admin |
 | `PUT` | `/recruitment/:id/status` | تحديث حالة الطلب | 🔒 HR Admin |
+| `DELETE` | `/recruitment/:id` | حذف طلب توظيف | 🔒 HR Admin |
 
 ### Tasks
 | Method | Endpoint | الوصف | الحماية |
@@ -499,7 +584,46 @@ docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 
 |---|---|---|---|
 | `POST` | `/payroll/generate` | توليد راتب (لموظف واحد أو لكل الموظفين) | 🔒 HR Admin |
 | `GET` | `/payroll` | عرض كل سجلات الرواتب | 🔒 HR Admin |
+| `GET` | `/payroll/me` | كشوف رواتبي | 🔒 مسجل دخول |
 | `GET` | `/payroll/employee/:id` | سجلات راتب موظف محدد | 🔒 HR Admin |
+| `GET` | `/payroll/:id` | كشف راتب واحد | 🔒 HR Admin |
+| `PUT` | `/payroll/:id` | تعديل كشف راتب | 🔒 HR Admin |
+| `DELETE` | `/payroll/:id` | حذف كشف راتب | 🔒 HR Admin |
+
+### Performance — فئات المعايير
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/performance/categories` | عرض الفئات المفعّلة *(بفلتر `?includeInactive=true`)* | 🔒 مسجل دخول |
+| `GET` | `/performance/categories/:id` | عرض فئة واحدة | 🔒 HR Admin |
+| `POST` | `/performance/categories` | إضافة فئة | 🔒 HR Admin |
+| `PUT` | `/performance/categories/:id` | تعديل فئة | 🔒 HR Admin |
+| `DELETE` | `/performance/categories/:id` | **تعطيل** فئة (`is_active = false`) | 🔒 HR Admin |
+
+### Performance — خطط التقييم
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/performance/plans` | قائمة الخطط | 🔒 Manager / HR Admin |
+| `GET` | `/performance/plans/:id` | خطة مع معاييرها مرتّبة | 🔒 Manager / HR Admin |
+| `POST` | `/performance/plans` | إنشاء خطة + معاييرها في Transaction واحدة | 🔒 HR Admin |
+| `PUT` | `/performance/plans/:id` | تعديل — **بحالة `draft` فقط** | 🔒 HR Admin |
+| `PATCH` | `/performance/plans/:id/activate` | تفعيل — فحص الأوزان + توليد أوراق التقييم | 🔒 HR Admin |
+| `PATCH` | `/performance/plans/:id/close` | إغلاق الخطة | 🔒 HR Admin |
+| `DELETE` | `/performance/plans/:id` | حذف — **بحالة `draft` فقط** | 🔒 HR Admin |
+
+### Performance — التقييمات
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/performance/reviews/pending` | ما زال بانتظار التعبئة | 🔒 Manager / HR Admin |
+| `GET` | `/performance/reviews/me` | نتائجي **المسلَّمة فقط** | 🔒 مسجل دخول |
+| `GET` | `/performance/reviews/employee/:userId` | سجل تقييمات موظف عبر الخطط | 🔒 Manager / HR Admin |
+| `GET` | `/performance/reviews/:id` | تقييم واحد بتفاصيل درجاته | 🔒 صاحبه أو مديره أو HR Admin |
+| `PUT` | `/performance/reviews/:id/submit` | تسليم الدرجات + الحساب في Transaction | 🔒 Manager / HR Admin |
+| `PATCH` | `/performance/reviews/:id/reopen` | إعادة فتح تقييم مسلَّم | 🔒 HR Admin |
+
+### Activity Log
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/activity-logs` | سجل النشاط | 🔒 HR Admin |
 
 ---
 
@@ -509,14 +633,14 @@ docker exec hrms-mysql mysqldump -u root -proot --default-character-set=utf8mb4 
 src/
 ├── common/
 │   ├── decorators/      # @Roles(), @CurrentUser()
+│   ├── dto/             # PaginationDto
 │   ├── enums/           # كل الـ enums بملف واحد مركزي
 │   ├── filters/         # HttpExceptionFilter (شكل موحّد للأخطاء)
 │   ├── guards/          # JwtAuthGuard, RolesGuard
 │   └── interceptors/    # ResponseInterceptor (شكل موحّد للردود)
-├── config/
-│   └── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
-├── migrations/          # ملفات Migration مرقّمة بالتاريخ
 ├── database/
+│   ├── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
+│   ├── migrations/      # 17 ملف Migration مرقّمة بالتاريخ
 │   └── seeds/           # بيانات تجريبية أولية
 ├── modules/
 │   ├── auth/            # تسجيل الدخول، JWT، Rate Limiting
@@ -530,7 +654,14 @@ src/
 │   ├── loan-repayments/ # جداول أقساط السلف (قراءة فقط)
 │   ├── recruitment/     # التوظيف ورفع السير الذاتية
 │   ├── tasks/           # إدارة المهام (Many-to-Many)
-│   └── payroll/         # احتساب الرواتب
+│   ├── payroll/         # احتساب الرواتب
+│   ├── activity-logs/   # سجل النشاط
+│   └── performance/     # تقييم الأداء — مقسّم حسب الوظيفة
+│       ├── categories/     # entity · dto/ · service · controller
+│       ├── plans/          # الخطة والمعايير · dto/ · service · controller
+│       ├── reviews/        # التقييم والدرجات · dto/ · service · controller
+│       ├── performance.constants.ts
+│       └── performance.module.ts
 ├── app.module.ts
 └── main.ts              # Helmet, Validation, Swagger, Filters, Interceptors
 ```
@@ -539,6 +670,8 @@ src/
 docs/
 └── screenshots/         # لقطات واجهات التصميم المستخدمة في هذا الملف
 ```
+
+> **ملاحظة على التنظيم:** معظم الموديولات ملفاتها مسطّحة لأنها 4-6 ملفات. موديول `performance` وحده مقسوم لمجلدات حسب الوظيفة (فئات / خطط / تقييمات) لأنه 15+ ملف وثلاث مجموعات راوتات مستقلة.
 
 ---
 
@@ -557,7 +690,8 @@ main
  └── feature/recruitment       → merged
  └── feature/tasks             → merged
  └── feature/payroll           → merged
- └── feature/performance       → (قيد العمل)
+ └── feature/performance       → merged
+ └── (الموديولات القادمة)
 ```
 
 نظام تسمية الـ Commits يتبع [Conventional Commits](https://www.conventionalcommits.org/):
@@ -567,10 +701,12 @@ main
 
 ## 🧭 الخطوات القادمة
 
-- [ ] **Module 9 — Performance Evaluation**: خطط تقييم بمعايير وأوزان مجموعها 100، تقييم المدير لكل موظف في قسمه، ونسبة نهائية موزونة
-- [ ] **Module 10 — Notifications**: إشعار الموظف عند قرار على طلبه أو تعيين مهمة
-- [ ] **Module 11 — Reports & Analytics**: تقارير الحضور، الرواتب، والأداء
-- [ ] **Module 12 — RBAC**: مراجعة نهائية شاملة لكل الصلاحيات + ربط التحقق من القسم في مراجعة الطلبات
+- [ ] **Module 10 — Notifications**: إشعار الموظف عند قرار على طلبه، تعيين مهمة، أو صدور نتيجة تقييمه
+- [ ] **Module 11 — Reports & Analytics**: تقارير الحضور، الرواتب، وملخصات الأداء لكل قسم
+- [ ] **Module 12 — RBAC**: مراجعة نهائية شاملة + ربط التحقق من القسم في `requests.review()` + راوت تعيين الأدوار
+- [ ] **توحيد الـ Pagination وإضافة الإندكسات** على كل الموديولات
+- [ ] **قياس الأداء**: تعبئة قاعدة البيانات ببيانات ضخمة ثم قياس بـ k6 قبل أي تحسين
+- [ ] **Redis**: طابور للعمليات الثقيلة (توليد الرواتب)، Rate Limiting موزّع، وتخزين الـ Refresh Tokens
 - [ ] **Testing**: تنفيذ مجموعة اختبارات Postman الكاملة بعد اكتمال الواجهة الخلفية
 - [ ] **Frontend**: ReactJS + Bootstrap بناءً على ملفات التصميم المرفقة
 
