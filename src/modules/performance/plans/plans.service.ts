@@ -16,6 +16,7 @@ import { CreatePlanDto } from './dto/create-plan.dto';
 import { CriterionDto } from './dto/criterion.dto';
 import { DEFAULT_MAX_SCORE, TOTAL_WEIGHT } from '../performance.constants';
 import { PlanStatus, ReviewStatus, Role } from '../../../common/enums/enums';
+import { UpdatePlanDto } from './dto/update-plan.dto';
 
 @Injectable()
 export class PlansService {
@@ -149,7 +150,85 @@ export class PlansService {
     return plan;
   }
 
-  private assertDatesMakeSense(dto: CreatePlanDto): void {
+  async findAll(): Promise<EvaluationPlanEntity[]> {
+    return this.plansRepository.find({
+      relations: { department: true },
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async update(
+    id: number,
+    dto: UpdatePlanDto,
+  ): Promise<EvaluationPlanEntity> {
+    const plan = await this.plansRepository.findOne({ where: { plan_id: id } });
+    if (!plan) {
+      throw new NotFoundException(`Evaluation plan #${id} not found`);
+    }
+    if (plan.plan_status !== PlanStatus.DRAFT) {
+      throw new BadRequestException(
+        `Only a draft plan can be edited. This plan is ${plan.plan_status}.`,
+      );
+    }
+
+    const merged = {
+      period_start: dto.period_start ?? plan.period_start,
+      period_end: dto.period_end ?? plan.period_end,
+      submission_start: dto.submission_start ?? plan.submission_start,
+      submission_end: dto.submission_end ?? plan.submission_end,
+    };
+    this.assertDatesMakeSense(merged);
+
+    if (dto.criteria) {
+      await this.assertCategoriesAreUsable(dto.criteria);
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const { criteria, ...planFields } = dto;
+      Object.assign(plan, planFields);
+      await manager.save(EvaluationPlanEntity, plan);
+
+      if (criteria) {
+        await manager.delete(PlanCriterionEntity, { plan_id: id });
+        const rows = criteria.map((criterion, index) =>
+          manager.create(PlanCriterionEntity, {
+            plan_id: id,
+            category_id: criterion.category_id,
+            criteria_text: criterion.criteria_text,
+            weight: criterion.weight,
+            max_score: criterion.max_score ?? DEFAULT_MAX_SCORE,
+            display_order: criterion.display_order ?? index,
+          }),
+        );
+        await manager.save(rows);
+      }
+    });
+
+    this.logger.log(`Evaluation plan #${id} updated`);
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<{ message: string }> {
+    const plan = await this.plansRepository.findOne({ where: { plan_id: id } });
+    if (!plan) {
+      throw new NotFoundException(`Evaluation plan #${id} not found`);
+    }
+    if (plan.plan_status !== PlanStatus.DRAFT) {
+      throw new BadRequestException(
+        `Only a draft plan can be deleted. This plan is ${plan.plan_status} and is now a record.`,
+      );
+    }
+    await this.plansRepository.remove(plan);
+    this.logger.log(`Evaluation plan #${id} deleted`);
+    return { message: `Evaluation plan #${id} has been deleted` };
+  }
+
+  private assertDatesMakeSense(dto: {
+    period_start: string;
+    period_end: string;
+    submission_start: string;
+    submission_end: string;
+  }): void {
     if (dto.period_end < dto.period_start) {
       throw new BadRequestException(
         'period_end must not be before period_start',

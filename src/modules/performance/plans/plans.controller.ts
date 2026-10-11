@@ -6,6 +6,8 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Delete,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -16,12 +18,19 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Role } from '../../../common/enums/enums';
+import { UpdatePlanDto } from './dto/update-plan.dto';
 
 @ApiBearerAuth()
 @Controller('performance/plans')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
+
+  @Get()
+  @Roles(Role.HR_ADMIN, Role.MANAGER)
+  findAll() {
+    return this.plansService.findAll();
+  }
 
   @Get(':id')
   @Roles(Role.HR_ADMIN, Role.MANAGER)
@@ -38,6 +47,15 @@ export class PlansController {
     return this.plansService.create(dto, user.user_id);
   }
 
+  @Put(':id')
+  @Roles(Role.HR_ADMIN)
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdatePlanDto,
+  ) {
+    return this.plansService.update(id, dto);
+  }
+
   @Patch(':id/activate')
   @Roles(Role.HR_ADMIN)
   activate(@Param('id', ParseIntPipe) id: number) {
@@ -48,5 +66,11 @@ export class PlansController {
   @Roles(Role.HR_ADMIN)
   close(@Param('id', ParseIntPipe) id: number) {
     return this.plansService.close(id);
+  }
+
+  @Delete(':id')
+  @Roles(Role.HR_ADMIN)
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.plansService.remove(id);
   }
 }
