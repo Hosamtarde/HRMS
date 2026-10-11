@@ -8,6 +8,8 @@ import { CategoriesController } from './categories/categories.controller';
 import { PerformanceReviewEntity } from './reviews/performance-review.entity';
 import { EvaluationScoreEntity } from './reviews/evaluation-score.entity';
 import { PlansService } from './plans/plans.service';
+import { ReviewsService } from './reviews/reviews.service';
+import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { PlansService } from './plans/plans.service';
       PerformanceReviewEntity,
       EvaluationScoreEntity,
       PlansService,
+      ReviewsService,
+      EmployeeProfileEntity,
     ]),
   ],
   controllers: [CategoriesController],
