@@ -68,3 +68,14 @@ export enum RepaymentStatus {
   PENDING = 'pending',
   PAID = 'paid',
 }
+
+export enum PlanStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  CLOSED = 'closed',
+}
+
+export enum ReviewStatus {
+  PENDING = 'pending',
+  SUBMITTED = 'submitted',
+}
