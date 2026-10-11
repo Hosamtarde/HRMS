@@ -5,14 +5,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { EvaluationPlanEntity } from './evaluation-plan.entity';
 import { PlanCriterionEntity } from './plan-criterion.entity';
 import { CriteriaCategoryEntity } from '../categories/criteria-category.entity';
+import { PerformanceReviewEntity } from '../reviews/performance-review.entity';
+import { EmployeeProfileEntity } from '../../employees/employee-profile.entity';
+import { UserEntity } from '../../users/user.entity';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CriterionDto } from './dto/criterion.dto';
-import { DEFAULT_MAX_SCORE } from '../performance.constants';
-import { PlanStatus } from '../../../common/enums/enums';
+import { DEFAULT_MAX_SCORE, TOTAL_WEIGHT } from '../performance.constants';
+import { PlanStatus, ReviewStatus, Role } from '../../../common/enums/enums';
 
 @Injectable()
 export class PlansService {
@@ -66,6 +69,72 @@ export class PlansService {
       `Evaluation plan #${planId} created as a draft with ${dto.criteria.length} criteria by user #${createdBy}`,
     );
     return this.findOne(planId);
+  }
+
+
+  async activate(id: number): Promise<EvaluationPlanEntity> {
+    const created = await this.dataSource.transaction(async (manager) => {
+
+      const plan = await manager.findOne(EvaluationPlanEntity, {
+        where: { plan_id: id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!plan) {
+        throw new NotFoundException(`Evaluation plan #${id} not found`);
+      }
+      if (plan.plan_status !== PlanStatus.DRAFT) {
+        throw new BadRequestException(
+          `Only a draft plan can be activated. This plan is already ${plan.plan_status}.`,
+        );
+      }
+
+      const criteria = await manager.find(PlanCriterionEntity, {
+        where: { plan_id: id },
+      });
+      this.assertWeightsTotalCorrectly(criteria);
+
+      const userIds = await this.findEmployeesInScope(manager, plan);
+      if (!userIds.length) {
+        throw new BadRequestException(
+          'No active employees fall within this plan. Activating it would create nothing to review.',
+        );
+      }
+
+      const reviews = userIds.map((userId) =>
+        manager.create(PerformanceReviewEntity, {
+          plan_id: plan.plan_id,
+          reviewed_user_id: userId,
+          review_status: ReviewStatus.PENDING,
+        }),
+      );
+      await manager.save(reviews);
+
+      plan.plan_status = PlanStatus.ACTIVE;
+      await manager.save(plan);
+
+      return reviews.length;
+    });
+
+    this.logger.log(
+      `Evaluation plan #${id} activated with ${created} pending reviews`,
+    );
+    return this.findOne(id);
+  }
+
+  async close(id: number): Promise<EvaluationPlanEntity> {
+    const plan = await this.plansRepository.findOne({ where: { plan_id: id } });
+    if (!plan) {
+      throw new NotFoundException(`Evaluation plan #${id} not found`);
+    }
+    if (plan.plan_status !== PlanStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Only an active plan can be closed. This plan is ${plan.plan_status}.`,
+      );
+    }
+    plan.plan_status = PlanStatus.CLOSED;
+    await this.plansRepository.save(plan);
+    this.logger.log(`Evaluation plan #${id} closed`);
+    return this.findOne(id);
   }
 
   async findOne(id: number): Promise<EvaluationPlanEntity> {
@@ -124,5 +193,41 @@ export class PlansService {
           .join(', ')}`,
       );
     }
+  }
+
+  private assertWeightsTotalCorrectly(criteria: PlanCriterionEntity[]): void {
+    if (!criteria.length) {
+      throw new BadRequestException('A plan needs at least one criterion');
+    }
+    const total = criteria.reduce((sum, c) => sum + Number(c.weight), 0);
+    if (Math.round(total * 100) !== TOTAL_WEIGHT * 100) {
+      throw new BadRequestException(
+        `Criteria weights must total ${TOTAL_WEIGHT}. Current total: ${total.toFixed(2)}.`,
+      );
+    }
+  }
+
+
+  private async findEmployeesInScope(
+    manager: EntityManager,
+    plan: EvaluationPlanEntity,
+  ): Promise<number[]> {
+    const query = manager
+      .createQueryBuilder(EmployeeProfileEntity, 'profile')
+      .innerJoin(UserEntity, 'user', 'user.user_id = profile.user_id')
+      .select('profile.user_id', 'user_id')
+      .where('user.status = :active', { active: true })
+      .andWhere('user.role IN (:...roles)', {
+        roles: [Role.EMPLOYEE, Role.MANAGER],
+      });
+
+    if (plan.department_id) {
+      query.andWhere('profile.department_id = :departmentId', {
+        departmentId: plan.department_id,
+      });
+    }
+
+    const rows = await query.getRawMany<{ user_id: number }>();
+    return rows.map((row) => row.user_id);
   }
 }
