@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException,Logger , ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RequestEntity } from './request.entity';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ReviewRequestDto } from './dto/review-request.dto';
@@ -14,10 +15,11 @@ import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 import { PaymentType } from '../../common/enums/enums';
 import { DataSource } from 'typeorm';
 import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
+import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
 @Injectable()
 export class RequestsService {
-    private readonly logger = new Logger(RequestsService.name);
+  private readonly logger = new Logger(RequestsService.name);
 
   constructor(
     @InjectRepository(RequestEntity)
@@ -25,7 +27,8 @@ export class RequestsService {
     private readonly leaveTypesService: LeaveTypesService,
     private readonly leaveBalancesService: LeaveBalancesService,
     private readonly dataSource: DataSource,
-    private readonly loanRepaymentsService: LoanRepaymentsService,    
+    private readonly loanRepaymentsService: LoanRepaymentsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
@@ -40,7 +43,15 @@ export class RequestsService {
       request_status: RequestStatus.PENDING,
     });
 
-    return this.requestsRepository.save(request);
+    const saved = await this.requestsRepository.save(request);
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_SUBMITTED, {
+      requestId: saved.request_id,
+      employeeId: userId,
+      requestType: saved.request_type,
+    });
+
+    return saved;
   }
 
   private countLeaveDays(startDate: string, endDate: string): number {
@@ -126,7 +137,7 @@ export class RequestsService {
     }
 
     const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
-    
+
     if (!isManagerOrAdmin && request.user_id !== userId) {
       throw new ForbiddenException('You can only view your own requests');
     }
@@ -139,7 +150,7 @@ export class RequestsService {
     dto: ReviewRequestDto,
     reviewerId: number,
   ): Promise<RequestEntity> {
-    return this.dataSource.transaction(async (manager) => {
+    const saved = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(RequestEntity);
 
       const request = await repo.findOne({ where: { request_id: id } });
@@ -179,7 +190,8 @@ export class RequestsService {
           );
         }
       }
-            if (
+
+      if (
         dto.status === RequestStatus.APPROVED &&
         request.request_type === RequestType.LOAN
       ) {
@@ -189,17 +201,27 @@ export class RequestsService {
       request.request_status = dto.status;
       request.reviewed_by = reviewerId;
 
-      const saved = await repo.save(request);
+      const updated = await repo.save(request);
 
       this.logger.log(
         `Request #${id} (${request.request_type}) ${dto.status} by user #${reviewerId}`,
       );
 
-      return saved;
+      return updated;
     });
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_REVIEWED, {
+      requestId: saved.request_id,
+      employeeId: saved.user_id,
+      requestType: saved.request_type,
+      reviewerId,
+      approved: dto.status === RequestStatus.APPROVED,
+    });
+
+    return saved;
   }
 
-    async remove(
+  async remove(
     id: number,
     userId: number,
     role: Role,
@@ -233,9 +255,14 @@ export class RequestsService {
       `Request #${id} (${request.request_type}) deleted by user #${userId}`,
     );
 
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_CANCELLED, {
+      requestId: id,
+      employeeId: request.user_id,
+      requestType: request.request_type,
+    });
+
     return { message: `Request #${id} has been deleted` };
   }
-
 
   private clampToMonth(
     startDate: string,
@@ -261,7 +288,7 @@ export class RequestsService {
 
     return { from, to };
   }
-  
+
   async getLeaveDaysInMonth(
     userId: number,
     salaryMonth: string,
@@ -311,7 +338,6 @@ export class RequestsService {
     return { unpaidDays, halfPaidDays };
   }
 
-
   async getApprovedLeaveDates(
     userId: number,
     salaryMonth: string,
@@ -345,5 +371,4 @@ export class RequestsService {
 
     return dates;
   }
-  
 }
