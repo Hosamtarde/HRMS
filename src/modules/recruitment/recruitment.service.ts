@@ -10,6 +10,8 @@ import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
 @Injectable()
 export class RecruitmentService {
@@ -18,6 +20,7 @@ export class RecruitmentService {
   constructor(
     @InjectRepository(RecruitmentEntity)
     private readonly recruitmentRepository: Repository<RecruitmentEntity>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async apply(dto: ApplyDto, cvFilePath: string): Promise<RecruitmentEntity> {
@@ -53,10 +56,25 @@ export class RecruitmentService {
     return application;
   }
 
-  async updateStatus(id: number, status: RecruitmentStatus): Promise<RecruitmentEntity> {
+  async updateStatus(
+    id: number,
+    status: RecruitmentStatus,
+  ): Promise<RecruitmentEntity> {
     const application = await this.findOne(id);
     application.application_status = status;
-    return this.recruitmentRepository.save(application);
+    const saved = await this.recruitmentRepository.save(application);
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.APPLICATION_STATUS, {
+      applicationId: saved.application_id,
+      applicantName: saved.applicant_name,
+      email: saved.email,
+      position: saved.applied_position,
+      status,
+    });
+
+    this.logger.log(`Application #${id} status changed to ${status}`);
+
+    return saved;
   }
 
     async remove(id: number): Promise<{ message: string }> {

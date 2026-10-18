@@ -10,3 +10,5 @@ export const CARRY_OVER_CAP = 10;
 
 /** موظف عُيّن خلال السنة يأخذ رصيداً بالتناسب مع أشهر عمله */
 export const PRORATE_FIRST_YEAR = true;
+
+export const LOW_LEAVE_BALANCE_THRESHOLD = 3;

@@ -19,6 +19,8 @@ import {
   HALF_PAID_DEDUCTION_RATE,
   WEEKEND_DAYS,
 } from './payroll.constants';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
 @Injectable()
 export class PayrollService {
@@ -34,7 +36,8 @@ export class PayrollService {
     private readonly dataSource: DataSource,
     private readonly loanRepaymentsService: LoanRepaymentsService,
     private readonly requestsService: RequestsService,
-    private readonly attendanceService: AttendanceService,    
+    private readonly attendanceService: AttendanceService, 
+    private readonly eventEmitter: EventEmitter2,   
   ) {}
 
 
@@ -94,7 +97,7 @@ export class PayrollService {
     salaryMonth: string,
     bonuses = 0,
   ): Promise<PayrollEntity> {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const profilesRepo = manager.getRepository(EmployeeProfileEntity);
       const payrollRepo = manager.getRepository(PayrollEntity);
 
@@ -136,7 +139,7 @@ export class PayrollService {
         salaryMonth,
         profile.hire_date,
       );
-      const absenceDeduction = absenceDays * dailyRate;  
+      const absenceDeduction = absenceDays * dailyRate;
 
       const deductions = Math.round((loanInstallment + unpaidDeduction + halfPaidDeduction + absenceDeduction) * 100, ) / 100;
 
@@ -168,8 +171,25 @@ export class PayrollService {
           `absent ${absenceDays}d, net ${netSalary}`,
       );
 
-      return payroll;
+      return { payroll, loanInstallment };
     });
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.PAYSLIP_GENERATED, {
+      payrollId: result.payroll.payroll_id,
+      userId,
+      salaryMonth,
+      netSalary: Number(result.payroll.net_salary),
+    });
+
+    if (result.loanInstallment > 0) {
+      this.eventEmitter.emit(NOTIFICATION_EVENTS.LOAN_INSTALMENT_PAID, {
+        userId,
+        salaryMonth,
+        amount: result.loanInstallment,
+      });
+    }
+
+    return result.payroll;
   }
   
   async generate(

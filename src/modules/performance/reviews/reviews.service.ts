@@ -16,6 +16,9 @@ import { SubmitReviewDto } from './dto/submit-review.dto';
 import { ScoreItemDto } from './dto/score-item.dto';
 import { ReviewStatus, PlanStatus, Role } from '../../../common/enums/enums';
 import { DepartmentEntity } from '../../departments/department.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_EVENTS } from '../../../common/events/notification-events';
+import { UserEntity } from '../../users/user.entity';
 
 interface Reviewer {
   user_id: number;
@@ -30,6 +33,8 @@ export class ReviewsService {
     @InjectRepository(PerformanceReviewEntity)
     private readonly reviewsRepository: Repository<PerformanceReviewEntity>,
     private readonly dataSource: DataSource,
+    private readonly eventEmitter: EventEmitter2,
+
   ) {}
 
   async submit(
@@ -37,7 +42,7 @@ export class ReviewsService {
     dto: SubmitReviewDto,
     reviewer: Reviewer,
   ): Promise<PerformanceReviewEntity> {
-    await this.dataSource.transaction(async (manager) => {
+      const result = await this.dataSource.transaction(async (manager) => {
     
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
@@ -106,6 +111,19 @@ export class ReviewsService {
         `Review #${reviewId} submitted by user #${reviewer.user_id}: ` +
           `${totalScore} raw, ${review.final_percentage}%`,
       );
+
+      return {
+        reviewedUserId: review.reviewed_user_id,
+        percentage: review.final_percentage,
+        planName: plan.plan_name,
+      };
+    });
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.REVIEW_SUBMITTED, {
+      reviewId,
+      planName: result.planName,
+      reviewedUserId: result.reviewedUserId,
+      percentage: result.percentage,
     });
 
     return this.findOne(reviewId);
@@ -115,7 +133,7 @@ export class ReviewsService {
     reviewId: number,
     hrUserId: number,
   ): Promise<PerformanceReviewEntity> {
-    await this.dataSource.transaction(async (manager) => {
+        const result = await this.dataSource.transaction(async (manager) => {
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
         lock: { mode: 'pessimistic_write' },
@@ -137,6 +155,8 @@ export class ReviewsService {
       }
       this.assertSubmissionWindowIsOpen(plan);
 
+      const previousReviewer = review.reviewed_by;
+
       review.review_status = ReviewStatus.PENDING;
       review.reviewed_by = null as unknown as number;
       review.total_score = null as unknown as number;
@@ -147,7 +167,24 @@ export class ReviewsService {
       this.logger.log(
         `Review #${reviewId} reopened by HR user #${hrUserId}`,
       );
+
+      return {
+        reviewerId: previousReviewer,
+        reviewedUserId: review.reviewed_user_id,
+        planName: plan.plan_name,
+      };
     });
+
+    if (result.reviewerId) {
+      const employeeName = await this.recipientNameOf(result.reviewedUserId);
+
+      this.eventEmitter.emit(NOTIFICATION_EVENTS.REVIEW_REOPENED, {
+        reviewId,
+        planName: result.planName,
+        reviewerId: result.reviewerId,
+        employeeName,
+      });
+    }
 
     return this.findOne(reviewId);
   }
@@ -362,4 +399,13 @@ export class ReviewsService {
 
     return matched;
   }
+
+    private async recipientNameOf(userId: number): Promise<string> {
+    const user = await this.dataSource.getRepository(UserEntity).findOne({
+      where: { user_id: userId },
+      select: { first_name: true, last_name: true },
+    });
+    return user ? `${user.first_name} ${user.last_name}` : 'الموظف';
+  }
+
 }
