@@ -7,6 +7,7 @@ import { NotificationsService } from './notifications.service';
 import { RecipientsService } from './recipients.service';
 import { NotificationsController } from './notifications.controller';
 import { RequestsListener } from './listeners/requests.listener';
+import { TasksListener } from './listeners/tasks.listener';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { RequestsListener } from './listeners/requests.listener';
     ]),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, RecipientsService, RequestsListener],
+  providers: [NotificationsService, RecipientsService, RequestsListener,TasksListener],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}
