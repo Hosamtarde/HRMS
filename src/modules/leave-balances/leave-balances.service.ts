@@ -300,7 +300,7 @@ export class LeaveBalancesService {
     leaveTypeId: number,
     year: number,
     days: number,
-  ): Promise<void> {
+  ): Promise<number> {
     const repo = manager.getRepository(LeaveBalanceEntity);
 
     const balance = await repo.findOne({
@@ -328,9 +328,11 @@ export class LeaveBalancesService {
     balance.used_days = Number(balance.used_days) + days;
     await repo.save(balance);
 
-    this.logger.log(
+       this.logger.log(
       `Consumed ${days} days from balance #${balance.balance_id} ` +
         `(user #${userId}) — ${available - days} days remain`,
     );
+
+    return available - days;
   }
 }

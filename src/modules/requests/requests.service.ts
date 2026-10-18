@@ -16,6 +16,8 @@ import { PaymentType } from '../../common/enums/enums';
 import { DataSource } from 'typeorm';
 import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
+import { LOW_LEAVE_BALANCE_THRESHOLD } from '../leave-balances/leave-balance.constants';
+
 
 @Injectable()
 export class RequestsService {
@@ -150,6 +152,12 @@ export class RequestsService {
     dto: ReviewRequestDto,
     reviewerId: number,
   ): Promise<RequestEntity> {
+
+        const ctx: { remaining: number | null; typeName: string } = {
+      remaining: null,
+      typeName: '',
+    };
+
     const saved = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(RequestEntity);
 
@@ -181,13 +189,14 @@ export class RequestsService {
           );
           const year = new Date(request.start_date).getUTCFullYear();
 
-          await this.leaveBalancesService.consumeDays(
+          ctx.remaining = await this.leaveBalancesService.consumeDays(
             manager,
             request.user_id,
             request.leave_type_id,
             year,
             days,
           );
+          ctx.typeName = leaveType.type_name;
         }
       }
 
@@ -211,12 +220,21 @@ export class RequestsService {
     });
 
     this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_REVIEWED, {
+      
       requestId: saved.request_id,
       employeeId: saved.user_id,
       requestType: saved.request_type,
       reviewerId,
       approved: dto.status === RequestStatus.APPROVED,
     });
+
+        if (ctx.remaining !== null && ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD) {
+      this.eventEmitter.emit(NOTIFICATION_EVENTS.LEAVE_BALANCE_LOW, {
+        userId: saved.user_id,
+        typeName: ctx.typeName,
+        remainingDays: ctx.remaining,
+      });
+    }
 
     return saved;
   }

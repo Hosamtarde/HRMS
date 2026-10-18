@@ -1,0 +1,1 @@
+export const LOW_LEAVE_BALANCE_THRESHOLD = 3;
