@@ -1,0 +1,16 @@
+export const NOTIFICATION_EVENTS = {
+  REQUEST_SUBMITTED: 'request.submitted',
+  REQUEST_REVIEWED: 'request.reviewed',
+  REQUEST_CANCELLED: 'request.cancelled',
+  TASK_ASSIGNED: 'task.assigned',
+  TASK_STATUS_CHANGED: 'task.statusChanged',
+  TASK_COMPLETED: 'task.completed',
+  TASK_DUE_SOON: 'task.dueSoon',
+  PLAN_ACTIVATED: 'performance.planActivated',
+  REVIEW_SUBMITTED: 'performance.reviewSubmitted',
+  REVIEW_REOPENED: 'performance.reviewReopened',
+  PAYSLIP_GENERATED: 'payroll.payslipGenerated',
+  LOAN_INSTALMENT_PAID: 'payroll.loanInstalmentPaid',
+  LEAVE_BALANCE_LOW: 'leave.balanceLow',
+  APPLICATION_STATUS: 'recruitment.applicationStatus',
+} as const;

@@ -21,10 +21,12 @@ import { LeaveBalancesModule } from './modules/leave-balances/leave-balances.mod
 import { LoanRepaymentsModule } from './modules/loan-repayments/loan-repayments.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
