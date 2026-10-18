@@ -56,13 +56,19 @@ export class RecruitmentService {
     return application;
   }
 
-  async updateStatus(id: number, status: RecruitmentStatus): Promise<RecruitmentEntity> {
+  async updateStatus(
+    id: number,
+    status: RecruitmentStatus,
+  ): Promise<RecruitmentEntity> {
     const application = await this.findOne(id);
     application.application_status = status;
     const saved = await this.recruitmentRepository.save(application);
 
     this.eventEmitter.emit(NOTIFICATION_EVENTS.APPLICATION_STATUS, {
       applicationId: saved.application_id,
+      applicantName: saved.applicant_name,
+      email: saved.email,
+      position: saved.applied_position,
       status,
     });
 

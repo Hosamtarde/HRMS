@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { NotificationEntity } from './notification.entity';
 import { UserEntity } from '../users/user.entity';
 import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
+import { MailModule } from '../mail/mail.module';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
@@ -14,6 +15,7 @@ import { TasksListener } from './listeners/tasks.listener';
 import { PerformanceListener } from './listeners/performance.listener';
 import { PayrollListener } from './listeners/payroll.listener';
 import { MiscListener } from './listeners/misc.listener';
+import { EmailListener } from './listeners/email.listener';
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { MiscListener } from './listeners/misc.listener';
     ]),
     JwtModule.register({}),
     ConfigModule,
+    MailModule,
   ],
   controllers: [NotificationsController],
   providers: [
@@ -35,6 +38,7 @@ import { MiscListener } from './listeners/misc.listener';
     PerformanceListener,
     PayrollListener,
     MiscListener,
+    EmailListener,
   ],
   exports: [NotificationsService],
 })

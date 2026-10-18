@@ -22,6 +22,23 @@ export class RecipientsService {
     return user ? `${user.first_name} ${user.last_name}` : 'موظف';
   }
 
+    async getContact(
+    userId: number,
+  ): Promise<{ name: string; email: string } | null> {
+    const user = await this.usersRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+    };
+  }
+
   async getApproverIds(employeeId: number): Promise<number[]> {
     const profile = await this.profilesRepository.findOne({
       where: { user_id: employeeId },
