@@ -17,6 +17,8 @@ import { CriterionDto } from './dto/criterion.dto';
 import { DEFAULT_MAX_SCORE, TOTAL_WEIGHT } from '../performance.constants';
 import { PlanStatus, ReviewStatus, Role } from '../../../common/enums/enums';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_EVENTS } from '../../../common/events/notification-events';
 
 @Injectable()
 export class PlansService {
@@ -28,6 +30,7 @@ export class PlansService {
     @InjectRepository(CriteriaCategoryEntity)
     private readonly categoriesRepository: Repository<CriteriaCategoryEntity>,
     private readonly dataSource: DataSource,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -75,7 +78,6 @@ export class PlansService {
 
   async activate(id: number): Promise<EvaluationPlanEntity> {
     const created = await this.dataSource.transaction(async (manager) => {
-
       const plan = await manager.findOne(EvaluationPlanEntity, {
         where: { plan_id: id },
         lock: { mode: 'pessimistic_write' },
@@ -113,12 +115,26 @@ export class PlansService {
       plan.plan_status = PlanStatus.ACTIVE;
       await manager.save(plan);
 
-      return reviews.length;
+      return {
+        count: reviews.length,
+        name: plan.plan_name,
+        userIds,
+      };
     });
 
     this.logger.log(
-      `Evaluation plan #${id} activated with ${created} pending reviews`,
+      `Evaluation plan #${id} activated with ${created.count} pending reviews`,
     );
+
+    const reviewerIds = await this.findReviewerIds(created.userIds);
+
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.PLAN_ACTIVATED, {
+      planId: id,
+      planName: created.name,
+      reviewerIds,
+      reviewCount: created.count,
+    });
+
     return this.findOne(id);
   }
 
@@ -308,5 +324,23 @@ export class PlansService {
 
     const rows = await query.getRawMany<{ user_id: number }>();
     return rows.map((row) => row.user_id);
+  }
+
+    private async findReviewerIds(employeeIds: number[]): Promise<number[]> {
+    if (!employeeIds.length) return [];
+
+    const rows = await this.dataSource
+      .createQueryBuilder(EmployeeProfileEntity, 'profile')
+      .innerJoin(
+        'departments',
+        'department',
+        'department.department_id = profile.department_id',
+      )
+      .select('DISTINCT department.manager_id', 'manager_id')
+      .where('profile.user_id IN (:...employeeIds)', { employeeIds })
+      .andWhere('department.manager_id IS NOT NULL')
+      .getRawMany<{ manager_id: number }>();
+
+    return rows.map((row) => row.manager_id);
   }
 }
