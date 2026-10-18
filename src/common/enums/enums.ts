@@ -79,3 +79,20 @@ export enum ReviewStatus {
   PENDING = 'pending',
   SUBMITTED = 'submitted',
 }
+
+export enum NotificationType {
+  REQUEST_SUBMITTED = 'request_submitted',
+  REQUEST_REVIEWED = 'request_reviewed',
+  REQUEST_CANCELLED = 'request_cancelled',
+  TASK_ASSIGNED = 'task_assigned',
+  TASK_STATUS_CHANGED = 'task_status_changed',
+  TASK_COMPLETED = 'task_completed',
+  TASK_DUE_SOON = 'task_due_soon',
+  REVIEW_PENDING = 'review_pending',
+  REVIEW_SUBMITTED = 'review_submitted',
+  REVIEW_REOPENED = 'review_reopened',
+  PAYSLIP_GENERATED = 'payslip_generated',
+  LOAN_INSTALMENT_PAID = 'loan_instalment_paid',
+  LEAVE_BALANCE_LOW = 'leave_balance_low',
+  APPLICATION_STATUS = 'application_status',
+}
