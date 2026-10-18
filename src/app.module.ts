@@ -20,6 +20,7 @@ import { LeaveTypesModule } from './modules/leave-types/leave-types.module';
 import { LeaveBalancesModule } from './modules/leave-balances/leave-balances.module';
 import { LoanRepaymentsModule } from './modules/loan-repayments/loan-repayments.module';
 import { PerformanceModule } from './modules/performance/performance.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
     LeaveBalancesModule,
     LoanRepaymentsModule,
     PerformanceModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [
