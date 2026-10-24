@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Tahoma, "Segoe UI", Arial, sans-serif; color:#101A2B; font-size:11px; }
+  .head { display:flex; align-items:center; justify-content:space-between;
+          border-bottom:2px solid #1D4E89; padding-bottom:10px; margin-bottom:16px; }
+  .head svg { height:34px; width:auto; }
+  .meta { text-align:left; font-size:9px; color:#6B7A91; line-height:1.7; }
+  h1 { font-size:16px; margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { background:#1D4E89; color:#fff; font-size:10px; font-weight:600;
+             padding:7px 6px; border:1px solid #163C6B; }
+  tbody td { padding:6px; border:1px solid #DCE3ED; }
+  tbody tr:nth-child(even) td { background:#F2F5F9; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  .empty { padding:28px; text-align:center; color:#6B7A91; border:1px dashed #C3CDDC; border-radius:6px; }
+  .summary { margin-top:18px; border-top:1px solid #DCE3ED; padding-top:12px;
+             display:flex; flex-wrap:wrap; gap:10px; }
+  .item { border:1px solid #DCE3ED; border-radius:6px; padding:8px 14px; min-width:140px; }
+  .item .k { font-size:9px; color:#6B7A91; margin-bottom:3px; }
+  .item .v { font-size:14px; font-weight:bold; color:#1D4E89; }
+</style>
+</head>
+<body>
+  <div class="head">
+    {{{logoSvg}}}
+    <div class="meta">
+      الفترة: {{period}}<br>
+      تاريخ الإصدار: {{generatedAt}}
+    </div>
+  </div>
+
+  <h1>{{title}}</h1>
+
+  {{#if isEmpty}}
+    <div class="empty">لا توجد بيانات ضمن هذه الفترة</div>
+  {{else}}
+    <table>
+      <thead>
+        <tr>
+          {{#each headers}}<th style="text-align:{{align}}">{{label}}</th>{{/each}}
+        </tr>
+      </thead>
+      <tbody>
+        {{#each rows}}
+          <tr>{{#each this}}<td style="text-align:{{align}}">{{value}}</td>{{/each}}</tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{/if}}
+
+  <div class="summary">
+    {{#each summary}}
+      <div class="item">
+        <div class="k">{{label}}</div>
+        <div class="v">{{value}}</div>
+      </div>
+    {{/each}}
+  </div>
+</body>
+</html>

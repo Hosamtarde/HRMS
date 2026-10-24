@@ -5,10 +5,9 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "assets": [
-      {
-        "include": "modules/mail/templates/**/*.hbs",
-        "outDir": "dist"
-      }
+      { "include": "modules/mail/templates/**/*.hbs", "outDir": "dist" },
+      { "include": "modules/reports/export/templates/**/*.hbs", "outDir": "dist" },
+      { "include": "modules/reports/export/assets/**/*", "outDir": "dist" }
     ],
     "watchAssets": true
   }
