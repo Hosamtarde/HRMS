@@ -5,7 +5,7 @@ import { ReportColumnType, ReportResult } from '../interfaces/report-result.inte
 const NUMBER_FORMATS: Record<ReportColumnType, string> = {
   money: '#,##0.00 "₪"',
   percent: '0.0"%"',
-  number: '#,##0',
+  number: '#,##0.##',
   date: 'yyyy-mm-dd',
   text: '@',
 };
