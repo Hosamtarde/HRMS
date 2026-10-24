@@ -2,7 +2,7 @@
 
 <img src="docs/screenshots/logo.png" width="110" alt="Palestine Polytechnic University" />
 
-# Human Resource Management System (HRMS)س
+# Human Resource Management System (HRMS)
 
 **Graduation Project — Palestine Polytechnic University**
 College of Information Technology and Computer Engineering · Department of IT and Computer Science
