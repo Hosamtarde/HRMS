@@ -15,6 +15,7 @@ import { PayrollReportService } from './services/payroll-report.service';
 import { PerformanceReportService } from './services/performance-report.service';
 import { TasksReportService } from './services/tasks-report.service';
 import { RecruitmentReportService } from './services/recruitment-report.service';
+import { DashboardService } from './services/dashboard.service';
 
 @ApiBearerAuth()
 @Controller('reports')
@@ -29,7 +30,13 @@ export class ReportsController {
     private readonly performanceReportService: PerformanceReportService,
     private readonly tasksReportService: TasksReportService,
     private readonly recruitmentReportService: RecruitmentReportService,
+    private readonly dashboardService: DashboardService,
   ) {}
+
+  @Get('dashboard')
+  dashboard(@CurrentScope() scope: ReportScope) {
+    return this.dashboardService.build(scope);
+  }
 
   @Get('attendance')
   attendance(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {

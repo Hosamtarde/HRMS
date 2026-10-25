@@ -17,6 +17,7 @@ import { PayrollReportService } from './services/payroll-report.service';
 import { PerformanceReportService } from './services/performance-report.service';
 import { TasksReportService } from './services/tasks-report.service';
 import { RecruitmentReportService } from './services/recruitment-report.service';
+import { DashboardService } from './services/dashboard.service';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RecruitmentReportService } from './services/recruitment-report.service'
   ],
   controllers: [ReportsController],
   providers: [
+    DashboardService,
     AttendanceReportService,
     LeaveReportService,
     PayrollReportService,
