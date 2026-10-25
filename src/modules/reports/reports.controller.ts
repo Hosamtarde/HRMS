@@ -6,11 +6,12 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/enums';
 import { ReportQueryDto } from './dto/report-query.dto';
 import { ReportFormatInterceptor } from './report-format.interceptor';
-import { AttendanceReportService } from './services/attendance-report.service';
 import { ReportScopeGuard } from './report-scope.guard';
 import { CurrentScope } from './decorators/report-scope.decorator';
 import type { ReportScope } from './interfaces/report-scope.interface';
+import { AttendanceReportService } from './services/attendance-report.service';
 import { LeaveReportService } from './services/leave-report.service';
+import { PayrollReportService } from './services/payroll-report.service';
 
 @ApiBearerAuth()
 @Controller('reports')
@@ -21,6 +22,7 @@ export class ReportsController {
   constructor(
     private readonly attendanceReportService: AttendanceReportService,
     private readonly leaveReportService: LeaveReportService,
+    private readonly payrollReportService: PayrollReportService,
   ) {}
 
   @Get('attendance')
@@ -31,5 +33,12 @@ export class ReportsController {
   @Get('leave-balances')
   leaveBalances(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
     return this.leaveReportService.build(query, scope);
+  }
+
+
+  @Roles(Role.HR_ADMIN)
+  @Get('payroll')
+  payroll(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+    return this.payrollReportService.build(query, scope);
   }
 }
