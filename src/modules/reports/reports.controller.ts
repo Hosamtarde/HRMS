@@ -10,6 +10,7 @@ import { AttendanceReportService } from './services/attendance-report.service';
 import { ReportScopeGuard } from './report-scope.guard';
 import { CurrentScope } from './decorators/report-scope.decorator';
 import type { ReportScope } from './interfaces/report-scope.interface';
+import { LeaveReportService } from './services/leave-report.service';
 
 @ApiBearerAuth()
 @Controller('reports')
@@ -19,6 +20,7 @@ import type { ReportScope } from './interfaces/report-scope.interface';
 export class ReportsController {
   constructor(
     private readonly attendanceReportService: AttendanceReportService,
+    private readonly leaveReportService: LeaveReportService,
   ) {}
 
   @Get('attendance')
@@ -26,5 +28,8 @@ export class ReportsController {
     return this.attendanceReportService.build(query, scope);
   }
 
-  
+  @Get('leave-balances')
+  leaveBalances(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+    return this.leaveReportService.build(query, scope);
+  }
 }
