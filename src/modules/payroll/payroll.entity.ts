@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn,Index } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 
+@Index(['salary_month'])
 @Entity('payroll_records')
 export class PayrollEntity {
   @PrimaryGeneratedColumn()

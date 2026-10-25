@@ -22,6 +22,7 @@ import { LoanRepaymentsModule } from './modules/loan-repayments/loan-repayments.
 import { PerformanceModule } from './modules/performance/performance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     LoanRepaymentsModule,
     PerformanceModule,
     NotificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

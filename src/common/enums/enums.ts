@@ -96,3 +96,9 @@ export enum NotificationType {
   LEAVE_BALANCE_LOW = 'leave_balance_low',
   APPLICATION_STATUS = 'application_status',
 }
+
+export enum ReportFormat {
+  JSON = 'json',
+  EXCEL = 'excel',
+  PDF = 'pdf',
+}

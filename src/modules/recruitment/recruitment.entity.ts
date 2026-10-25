@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,Index } from 'typeorm';
 import { RecruitmentStatus } from '../../common/enums/enums';
 
+@Index(['submission_date'])
 @Entity('recruitment')
 export class RecruitmentEntity {
   @PrimaryGeneratedColumn()

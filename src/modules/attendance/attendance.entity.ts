@@ -4,11 +4,12 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 import {AttendanceStatus} from '../../common/enums/enums';
 
-
+@Index(['user_id', 'attendance_date'])
 @Entity('attendance_records')
 export class AttendanceEntity {
   @PrimaryGeneratedColumn()
