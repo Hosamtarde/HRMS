@@ -14,11 +14,13 @@ export class IsNotBeforeConstraint implements ValidatorConstraintInterface {
       return true;
     }
 
-    return new Date(value).getTime() >= new Date(other).getTime();
-  }
+    const thisDate = new Date(value).getTime();
+    const otherDate = new Date(other).getTime();
 
-  defaultMessage(args: ValidationArguments): string {
-    const [otherProperty] = args.constraints as string[];
-    return `${args.property} must not be earlier than ${otherProperty}`;
+    if (Number.isNaN(thisDate) || Number.isNaN(otherDate)) {
+      return true;
+    }
+
+    return thisDate >= otherDate;
   }
 }
