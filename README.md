@@ -1,11 +1,12 @@
 <div align="center">
 
-<img src="docs/screenshots/nexushr-logo.svg" width="260" alt="NexusHR" />
+<img src="docs/screenshots/nexushr-badge.svg" width="84" alt="NexusHR" />
+&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="docs/screenshots/logo.png" width="76" alt="Palestine Polytechnic University" />
 
-<br><br>
+# NexusHR
 
-<img src="docs/screenshots/logo.png" width="90" alt="Palestine Polytechnic University" />
-# NexusHR — Human Resource Management System
+### Human Resource Management System
 
 **Graduation Project — Palestine Polytechnic University**
 College of Information Technology and Computer Engineering · Department of IT and Computer Science
