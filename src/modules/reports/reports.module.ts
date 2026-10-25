@@ -5,6 +5,7 @@ import { DepartmentEntity } from '../departments/department.entity';
 import { LeaveBalanceEntity } from '../leave-balances/leave-balance.entity';
 import { PayrollEntity } from '../payroll/payroll.entity';
 import { PerformanceReviewEntity } from '../performance/reviews/performance-review.entity';
+import { AssignedTaskEntity } from '../tasks/assigned-task.entity';
 import { ExportModule } from './export/export.module';
 import { ReportsController } from './reports.controller';
 import { ReportFormatInterceptor } from './report-format.interceptor';
@@ -13,6 +14,7 @@ import { AttendanceReportService } from './services/attendance-report.service';
 import { LeaveReportService } from './services/leave-report.service';
 import { PayrollReportService } from './services/payroll-report.service';
 import { PerformanceReportService } from './services/performance-report.service';
+import { TasksReportService } from './services/tasks-report.service';
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { PerformanceReportService } from './services/performance-report.service'
       LeaveBalanceEntity,
       PayrollEntity,
       PerformanceReviewEntity,
+      AssignedTaskEntity,
     ]),
     ExportModule,
   ],
@@ -31,6 +34,7 @@ import { PerformanceReportService } from './services/performance-report.service'
     LeaveReportService,
     PayrollReportService,
     PerformanceReportService,
+    TasksReportService,
     ReportFormatInterceptor,
     ReportScopeGuard,
   ],
