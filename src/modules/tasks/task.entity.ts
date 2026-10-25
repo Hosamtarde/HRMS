@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn,Index } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 import { TaskPriority, TaskStatus } from '../../common/enums/enums';
 
+@Index(['deadline'])
 @Entity('tasks')
 export class TaskEntity {
   @PrimaryGeneratedColumn()

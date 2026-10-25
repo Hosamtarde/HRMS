@@ -5,12 +5,14 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  Index,
 } from 'typeorm';
 import { UserEntity } from '../users/user.entity';
 import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 
 @Entity('leave_balances')
 @Unique(['user_id', 'leave_type_id', 'year'])
+@Index(['year'])
 export class LeaveBalanceEntity {
   @PrimaryGeneratedColumn()
   balance_id!: number;
