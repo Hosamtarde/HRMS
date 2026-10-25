@@ -12,6 +12,8 @@ import type { ReportScope } from './interfaces/report-scope.interface';
 import { AttendanceReportService } from './services/attendance-report.service';
 import { LeaveReportService } from './services/leave-report.service';
 import { PayrollReportService } from './services/payroll-report.service';
+import { PerformanceReportService } from './services/performance-report.service';
+
 
 @ApiBearerAuth()
 @Controller('reports')
@@ -23,6 +25,7 @@ export class ReportsController {
     private readonly attendanceReportService: AttendanceReportService,
     private readonly leaveReportService: LeaveReportService,
     private readonly payrollReportService: PayrollReportService,
+    private readonly performanceReportService: PerformanceReportService,
   ) {}
 
   @Get('attendance')
@@ -40,5 +43,10 @@ export class ReportsController {
   @Get('payroll')
   payroll(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
     return this.payrollReportService.build(query, scope);
+  }
+
+  @Get('performance')
+  performance(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+    return this.performanceReportService.build(query, scope);
   }
 }

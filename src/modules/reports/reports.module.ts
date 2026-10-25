@@ -4,6 +4,7 @@ import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { DepartmentEntity } from '../departments/department.entity';
 import { LeaveBalanceEntity } from '../leave-balances/leave-balance.entity';
 import { PayrollEntity } from '../payroll/payroll.entity';
+import { PerformanceReviewEntity } from '../performance/reviews/performance-review.entity';
 import { ExportModule } from './export/export.module';
 import { ReportsController } from './reports.controller';
 import { ReportFormatInterceptor } from './report-format.interceptor';
@@ -11,6 +12,7 @@ import { ReportScopeGuard } from './report-scope.guard';
 import { AttendanceReportService } from './services/attendance-report.service';
 import { LeaveReportService } from './services/leave-report.service';
 import { PayrollReportService } from './services/payroll-report.service';
+import { PerformanceReportService } from './services/performance-report.service';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { PayrollReportService } from './services/payroll-report.service';
       DepartmentEntity,
       LeaveBalanceEntity,
       PayrollEntity,
+      PerformanceReviewEntity,
     ]),
     ExportModule,
   ],
@@ -27,6 +30,7 @@ import { PayrollReportService } from './services/payroll-report.service';
     AttendanceReportService,
     LeaveReportService,
     PayrollReportService,
+    PerformanceReportService,
     ReportFormatInterceptor,
     ReportScopeGuard,
   ],
