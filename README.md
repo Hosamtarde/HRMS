@@ -2,7 +2,7 @@
 
 <img src="docs/screenshots/logo.png" width="110" alt="Palestine Polytechnic University" />
 
-# Human Resource Management System (HRMS)
+# NexusHR — Human Resource Management System
 
 **Graduation Project — Palestine Polytechnic University**
 College of Information Technology and Computer Engineering · Department of IT and Computer Science
@@ -15,9 +15,9 @@ College of Information Technology and Computer Engineering · Department of IT a
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
-[![Progress](https://img.shields.io/badge/modules-9%2F12%20completed-brightgreen?style=flat-square)]()
-[![Routes](https://img.shields.io/badge/API%20routes-76%20mapped-blue?style=flat-square)]()
-[![Tables](https://img.shields.io/badge/DB%20tables-17%20migrations-orange?style=flat-square)]()
+[![Progress](https://img.shields.io/badge/modules-11%2F12%20completed-brightgreen?style=flat-square)]()
+[![Routes](https://img.shields.io/badge/API%20routes-89%20mapped-blue?style=flat-square)]()
+[![Tables](https://img.shields.io/badge/DB%20tables-19%20migrations-orange?style=flat-square)]()
 [![Screens](https://img.shields.io/badge/UI%20screens-44%20designed-9146FF?style=flat-square)]()
 [![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
@@ -28,16 +28,18 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 ## 📖 عن المشروع
 
-**HRMS** هو نظام إدارة موارد بشرية حديث، مصمم ليكون بديلاً بسيطاً وفعّالاً وبأسعار معقولة عن الأنظمة العالمية المعقدة (Workday, SAP SuccessFactors) للشركات الصغيرة والمتوسطة.
+**NexusHR** هو نظام إدارة موارد بشرية حديث، مصمم ليكون بديلاً بسيطاً وفعّالاً وبأسعار معقولة عن الأنظمة العالمية المعقدة (Workday, SAP SuccessFactors) للشركات الصغيرة والمتوسطة.
 
-النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، المهام، تقييم الأداء، وحتى احتساب الرواتب — بواجهة بسيطة وسهلة الاستخدام.
+الاسم من **Nexus** — نقطة الالتقاء. وهاد بالضبط شغل النظام: بيربط الموظف بقسمه، بحضوره، برصيد إجازاته، بمهامه، بتقييمه، وبراتبه — كل إشي متصل بإشي.
+
+النظام بيغطي دورة الموظف الكاملة: من التقديم على الوظيفة، لإدارة الحضور والانصراف، الإجازات والسلف، المهام، تقييم الأداء، الإشعارات الفورية، التقارير القابلة للتصدير، وحتى احتساب الرواتب.
 
 | | |
 |---|---|
 | **المستودع** | <https://github.com/Hosamtarde/HRMS> |
 | **الواجهة الخلفية** | NestJS + TypeScript · MySQL · TypeORM Migrations |
-| **عدد الـ Endpoints الحالية** | 76 route |
-| **عدد الـ Migrations** | 17 |
+| **عدد الـ Endpoints الحالية** | 89 route |
+| **عدد الـ Migrations** | 19 |
 | **عدد شاشات التصميم** | 44 شاشة (4 أدوار + نسخة موبايل + نسخة عربية RTL) |
 | **لغات الواجهة** | إنجليزي (LTR) + عربي (RTL) — كل شاشة فيها مفتاح تبديل |
 
@@ -197,12 +199,12 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 ---
 
-### 📊 موديولات قادمة (تصميم جاهز)
+### 🔔 الإشعارات و 📊 التقارير
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/notifications.png" alt="Notifications" /><p align="center"><em>الإشعارات (Module 10)</em></p></td>
-<td width="50%"><img src="docs/screenshots/reports.png" alt="Reports" /><p align="center"><em>التقارير والتحليلات (Module 11)</em></p></td>
+<td width="50%"><img src="docs/screenshots/notifications.png" alt="Notifications" /><p align="center"><em>مركز الإشعارات — يصل فوراً بدون تحديث الصفحة</em></p></td>
+<td width="50%"><img src="docs/screenshots/reports.png" alt="Reports" /><p align="center"><em>التقارير — عرض على الشاشة أو تصدير Excel / PDF</em></p></td>
 </tr>
 </table>
 
@@ -217,6 +219,10 @@ College of Information Technology and Computer Engineering · Department of IT a
 | **Authentication** | JWT (Access + Refresh Tokens) |
 | **Authorization** | Role-Based Access Control (RBAC) |
 | **API Documentation** | Swagger / OpenAPI |
+| **Real-time** | Socket.IO Gateway (WebSocket) — دفع الإشعارات لحظياً |
+| **Events** | EventEmitter2 — فصل الموديولات عن بعضها |
+| **Email** | Nodemailer + Handlebars (قوالب عربية RTL) |
+| **Exports** | ExcelJS (XLSX) · Puppeteer (PDF بالعربية) |
 | **File Uploads** | Multer (CV uploads with type/size validation) |
 | **Security** | Helmet, Rate Limiting (Throttler) |
 | **Containerization** | Docker + Docker Compose |
@@ -236,9 +242,9 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | الدور | الصلاحيات |
 |---|---|
 | **Applicant** | يقدّم على وظائف ويتابع حالة طلبه — بدون تسجيل دخول |
-| **Employee** | بياناته الشخصية، الحضور والانصراف، تقديم الطلبات، رصيد إجازاته، كشوف رواتبه، مهامه، ونتائج تقييمه |
-| **Manager** | كل صلاحيات Employee + الموافقة/الرفض على طلبات موظفيه، متابعة حضور الفريق، إدارة المهام، وتقييم أداء موظفي قسمه |
-| **HR Admin** | صلاحية كاملة: الموظفون، الأقسام، أنواع الإجازات والأرصدة، الرواتب، التوظيف، خطط التقييم، والأدوار |
+| **Employee** | بياناته الشخصية، الحضور والانصراف، تقديم الطلبات، رصيد إجازاته، كشوف رواتبه، مهامه، نتائج تقييمه، وإشعاراته |
+| **Manager** | كل صلاحيات Employee + الموافقة/الرفض على طلبات موظفيه، متابعة حضور الفريق، إدارة المهام، تقييم أداء موظفي قسمه، وتقارير **قسمه فقط** |
+| **HR Admin** | صلاحية كاملة: الموظفون، الأقسام، أنواع الإجازات والأرصدة، الرواتب، التوظيف، خطط التقييم، الأدوار، وكل التقارير |
 
 ---
 
@@ -266,8 +272,8 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | 7 | **Task Management** | ✅ | علاقة Many-to-Many، تعيين متعدد، نسبة إنجاز لكل موظف |
 | 8 | **Payroll Management** | ✅ | راتب صافٍ تلقائي من 4 مصادر خصم مربوطة بـ 3 موديولات |
 | 9 | **Performance Evaluation** | ✅ | 5 جداول، خطط بمعايير وأوزان مجموعها 100، نسبة نهائية موزونة |
-| 10 | **Notifications** | ⏳ | — |
-| 11 | **Reports & Analytics** | ⏳ | — |
+| 10 | **Notifications** | ✅ | 13 حدث من 8 موديولات، دفع فوري بـ WebSocket، وإيميل عربي RTL |
+| 11 | **Reports & Analytics** | ✅ | 7 تقارير، كل واحد بـ JSON / Excel / PDF من نفس الـ Endpoint |
 | 12 | **RBAC — مراجعة نهائية** | ⏳ | — |
 
 ---
@@ -384,6 +390,66 @@ if (Math.round(total * 100) !== TOTAL_WEIGHT * 100)
 
 عند حذف طلب أو تسليم تقييم، الترتيب مقصود: الكود بيفحص **الصلاحية أولاً** ثم الحالة — لأنه العكس بيسرّب معلومة عن وجود وحالة سجل شخص تاني عبر رسالة الخطأ.
 
+### 9️⃣ الموديولات لا تعرف بوجود الإشعارات
+
+موديول الطلبات ما بيستورد موديول الإشعارات، ولا موديول المهام، ولا الرواتب. كل واحد **بيطلق حدث** وبس:
+
+```typescript
+this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_REVIEWED, { ... });
+```
+
+وموديول الإشعارات بيسمع. النتيجة إنه تقدر تلغي الإشعارات كلها من النظام بدون ما تلمس سطر واحد من منطق الأعمال.
+
+**قاعدتان غير قابلتين للكسر:**
+
+**الإطلاق بعد الـ Commit، مش جوّاه.** لو أطلقنا الحدث جوّا الـ Transaction وبعدها صار خطأ ورجعت (rollback) — الموافقة بتتلغى، بس الموظف لحقه وصله إشعار عن قرار ما صار.
+
+**كل Listener بيبلع أخطاءه.** فشل الإشعار ممنوع يفشّل العملية الي سبّبته. موظف ما بيستاهل يفشل طلبه لأن سيرفر الإيميل كان نايم.
+
+### 🔟 الإشعار يصل بدون تحديث الصفحة
+
+الـ `NotificationsGateway` بتتحقق من الـ JWT **عند الاتصال** — لأن الـ WebSocket ما فيه headers مع كل رسالة زي الـ HTTP. وبعد التحقق بتدخّل الاتصال **غرفة** اسمها رقم المستخدم:
+
+```
+user:5
+```
+
+فلو الموظف فاتح النظام من لابتوب وموبايل بنفس الوقت، التنتين بنفس الغرفة والتنتين بيستقبلوا — بدون أي كود إضافي. البديل (حفظ `Map<userId, socket>` يدوياً) بيخلي كل اتصال جديد يلغي الي قبله.
+
+**والإيميل لأربعة أحداث بس**، مش للأربعتعش. لو كل إشي بيبعت إيميل، الموظف بيوقف يقرا إيميلاتنا بعد أسبوع.
+
+> **وسبب وجود الإيميل أصلاً هو المتقدّم للوظيفة:** عمود `notifications.user_id` مفتاح إجباري على جدول `users`، والمتقدّم **ما إله حساب**. فالإشعار الداخلي مستحيل له تقنياً، والإيميل هو القناة الوحيدة الي بتوصله.
+
+### 1️⃣1️⃣ تقرير واحد، ثلاث صيغ
+
+كل تقرير بيرجّع **نفس البنية**: أعمدة وصفوف وملخّص. وإنترسبتور بيقرأ `?format=` وبيسلّم النتيجة لمصدّر Excel أو PDF:
+
+```
+GET /reports/attendance?from=2026-09-01&to=2026-10-25            → JSON
+GET /reports/attendance?from=2026-09-01&to=2026-10-25&format=excel → XLSX
+GET /reports/attendance?from=2026-09-01&to=2026-10-25&format=pdf   → PDF
+```
+
+الخدمة **ما بتعرف** أي صيغة انطلبت، والمصدّر **ما بيعرف** من وين إجت الأرقام. فالاستعلام مكتوب مرة وحدة، والتقرير الثامن بياخد التلات صيغ مجاناً.
+
+**ولا جدول جديد بكامل الموديول.** أي تقرير بيحتاج جدول معناه إنه في نقص بموديول سابق، مش إنه التقارير بدها تخزين خاص فيها.
+
+**ليش الـ PDF عبر متصفح:** مكتبات الـ PDF العادية بتكتب الحروف العربية **منفصلة ومعكوسة**، لأن العربي بده تشكيل حروف واتجاه — وهاد شغل محرك طباعة كامل. Chrome بيعمله أصلاً، فبنولّد HTML وبنطبعه. متصفح واحد بيتشغّل عند أول طلب وبيضل، وصفحة جديدة لكل تقرير.
+
+### 1️⃣2️⃣ النطاق يُحسب مرة واحدة، لا سبع مرات
+
+`ReportScopeGuard` بتحدد — **قبل** ما يشتغل أي تقرير — أي أقسام مسموح للمستخدم يشوفها، ومن `departments.manager_id` مش من قسم المستخدم نفسه:
+
+| المستخدم | النطاق |
+|---|---|
+| HR Admin | كل الأقسام |
+| Manager | الأقسام الي هو مديرها فعلياً |
+| Manager طلب قسم مش إله | `403` صريح — مش استبدال صامت بقسمه |
+
+ولو خلّينا كل تقرير يحسب النطاق لحاله، بيصير نفس المنطق مكرر سبع مرات — وبيوم تضيف التقرير التامن وتنسى، بتفتح ثغرة بدون ما تنتبه.
+
+**واستثناءان مقصودان:** تقرير **الرواتب** للـ HR فقط (الراتب معلومة شخصية مش تشغيلية)، وتقرير **التوظيف** للـ HR فقط (المتقدّم ما إله قسم، فالنطاق بلا معنى عليه).
+
 ---
 
 ## 🛡️ ممارسات الجودة والأمان (Best Practices)
@@ -391,7 +457,10 @@ if (Math.round(total * 100) !== TOTAL_WEIGHT * 100)
 | الميزة | الوصف |
 |---|---|
 | **TypeORM Migrations** | تتبع تغييرات قاعدة البيانات بملفات مرقّمة بدل الاعتماد على `synchronize` التلقائي |
-| **Global Exception Filter** | كل الأخطاء ترجع بشكل موحّد: `statusCode`, `message`, `path`, `timestamp` |
+| **Global Exception Filter** | كل الأخطاء ترجع بشكل موحّد: `statusCode`, `message`, `path`, `timestamp` — والأخطاء غير المتوقعة (500) بتسجّل stack كامل باللوج |
+| **Event-Driven Architecture** | الموديولات بتطلق أحداث ولا تعرف مين بيسمعها — الإشعارات مفصولة تماماً عن منطق الأعمال |
+| **WebSocket Authentication** | التحقق من الـ JWT عند الاتصال، وكل مستخدم بغرفة خاصة — ما حدا بيسمع إشعارات غيره |
+| **Graceful Degradation** | فشل الإشعار أو الإيميل أو الدفع اللحظي ما بيفشّل العملية الأصلية أبداً |
 | **Global Validation Pipe** | تحقق تلقائي وصارم من كل البيانات الواردة عبر DTOs مع `forbidNonWhitelisted` |
 | **Nested Validation** | المصفوفات المتداخلة (معايير الخطة، درجات التقييم) محمية بـ `@ValidateNested` + `@Type` معاً |
 | **Response Interceptor** | كل الردود الناجحة موحّدة الشكل: `{ success, data, timestamp }` |
@@ -407,6 +476,9 @@ if (Math.round(total * 100) !== TOTAL_WEIGHT * 100)
 | **Ownership-based Filtering** | كل مستخدم يشوف بياناته الخاصة بس (ما لم يكن Manager/HR Admin) |
 | **Cross-Module Integration** | Payroll يقرأ من Employees و Requests و Attendance لحساب الراتب الصافي تلقائياً |
 | **Centralized Enums** | كل الـ enums في ملف واحد `common/enums/enums.ts` — مصدر واحد للحقيقة |
+| **Aggregation in SQL** | التقارير بتحسب بـ `SUM` و `GROUP BY` بالداتابيز، مش بتجيب آلاف الصفوف للذاكرة |
+| **Parallel Queries** | لوحة المؤشرات بتشغّل 5 استعلامات بـ `Promise.all` بدل JOIN واحد بيولّد ضرب ديكارتي |
+| **Scope Guard** | نطاق الرؤية يُحسب مرة واحدة قبل التقرير، فما ينتسى على تقرير جديد |
 | **Bilingual UI (EN/AR)** | كل شاشة تدعم الإنجليزية (LTR) والعربية (RTL) بتبديل فوري |
 
 ---
@@ -427,21 +499,36 @@ cd HRMS/backend
 # 2. تركيب الحزم
 npm install
 
-# 3. إعداد متغيرات البيئة
+# 3. تحميل متصفح توليد الـ PDF (مرة واحدة)
+npx puppeteer browsers install chrome
+
+# 4. إعداد متغيرات البيئة
 cp .env.example .env
 
-# 4. تشغيل قاعدة البيانات (MySQL + phpMyAdmin)
+# 5. تشغيل قاعدة البيانات (MySQL + phpMyAdmin)
 docker compose up -d
 
-# 5. تشغيل الـ Migrations (بناء الجداول)
+# 6. تشغيل الـ Migrations (بناء الجداول)
 npm run migration:run
 
-# 6. إضافة بيانات أولية (مستخدمين + فئات معايير التقييم)
+# 7. إضافة بيانات أولية (مستخدمين + فئات معايير التقييم)
 npm run seed
 
-# 7. تشغيل السيرفر
+# 8. تشغيل السيرفر
 npm run start:dev
 ```
+
+**متغيرات الإيميل** مطلوبة بـ `.env` عشان تشتغل إشعارات البريد (أي خادم SMTP — Mailtrap للتجربة):
+
+```env
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USER=...
+MAIL_PASS=...
+MAIL_FROM="NexusHR <no-reply@nexushr.local>"
+```
+
+> لو ما انضبطت، النظام بيضل شغال بالكامل — الإيميل بيفشل بهدوء وبينسجّل باللوج، والإشعار الداخلي بيوصل عادي.
 
 | الخدمة | الرابط |
 |---|---|
@@ -488,7 +575,7 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 
 ## 🔑 نقاط الوصول (API Endpoints)
 
-> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **76 route**.
+> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **89 route**.
 
 ### Authentication
 | Method | Endpoint | الوصف | الحماية |
@@ -620,6 +707,33 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 | `PUT` | `/performance/reviews/:id/submit` | تسليم الدرجات + الحساب في Transaction | 🔒 Manager / HR Admin |
 | `PATCH` | `/performance/reviews/:id/reopen` | إعادة فتح تقييم مسلَّم | 🔒 HR Admin |
 
+### Notifications
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/notifications` | إشعاراتي *(بفلتر `?unreadOnly=true` و Pagination)* | 🔒 مسجل دخول |
+| `GET` | `/notifications/count` | عدد غير المقروء | 🔒 مسجل دخول |
+| `PATCH` | `/notifications/read-all` | تعليم الكل كمقروء | 🔒 مسجل دخول |
+| `PATCH` | `/notifications/:id/read` | تعليم إشعار كمقروء | 🔒 صاحب الإشعار |
+| `DELETE` | `/notifications/read` | حذف كل المقروء | 🔒 مسجل دخول |
+| `DELETE` | `/notifications/:id` | حذف إشعار | 🔒 صاحب الإشعار |
+
+> **ولا راوت فيه `@Roles`** — الإشعار بينتمي لشخص واحد بالضبط، والتحقق بيصير بالملكية مش بالدور. ومافي `POST`: الإشعارات بتتولّد من الأحداث، ما حدا بيكتبها بإيده.
+>
+> **القناة اللحظية:** `ws://localhost:3000/notifications` — بيرسل حدث `notification` فور إنشاء أي إشعار.
+
+### Reports *(كلها تدعم `?format=excel` و `?format=pdf`)*
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/reports/dashboard` | لقطة لحظية لكل قسم: الموظفون، حضور اليوم، الشغل المعلّق | 🔒 Manager / HR Admin |
+| `GET` | `/reports/attendance` | حضور وتأخير وغياب وساعات لكل موظف + نسبة الحضور | 🔒 Manager / HR Admin |
+| `GET` | `/reports/leave-balances` | المستحق والمستهلك والمتبقي لكل موظف ونوع إجازة | 🔒 Manager / HR Admin |
+| `GET` | `/reports/payroll` | الأساسي والعلاوات والخصومات والصافي، مع تفصيل أقساط القروض | 🔒 **HR Admin فقط** |
+| `GET` | `/reports/performance` | نتائج التقييمات + مين لسا ما تقيّم | 🔒 Manager / HR Admin |
+| `GET` | `/reports/tasks` | المسندة والمنجزة والمتأخرة + نسبتَي إنجاز مختلفتين | 🔒 Manager / HR Admin |
+| `GET` | `/reports/recruitment` | قمع التقديم لكل وظيفة | 🔒 **HR Admin فقط** |
+
+> كل التقارير (ما عدا `dashboard`) بتاخد `?from=YYYY-MM-DD&to=YYYY-MM-DD` إجبارياً، مع تحقق إنه `to` مش قبل `from`. وبتقبل `?departmentId=` للفلترة — بس المدير ما بيقدر يطلب قسم مش إله.
+
 ### Activity Log
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
@@ -640,7 +754,7 @@ src/
 │   └── interceptors/    # ResponseInterceptor (شكل موحّد للردود)
 ├── database/
 │   ├── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
-│   ├── migrations/      # 17 ملف Migration مرقّمة بالتاريخ
+│   ├── migrations/      # 19 ملف Migration مرقّمة بالتاريخ
 │   └── seeds/           # بيانات تجريبية أولية
 ├── modules/
 │   ├── auth/            # تسجيل الدخول، JWT، Rate Limiting
@@ -656,12 +770,26 @@ src/
 │   ├── tasks/           # إدارة المهام (Many-to-Many)
 │   ├── payroll/         # احتساب الرواتب
 │   ├── activity-logs/   # سجل النشاط
-│   └── performance/     # تقييم الأداء — مقسّم حسب الوظيفة
-│       ├── categories/     # entity · dto/ · service · controller
-│       ├── plans/          # الخطة والمعايير · dto/ · service · controller
-│       ├── reviews/        # التقييم والدرجات · dto/ · service · controller
-│       ├── performance.constants.ts
-│       └── performance.module.ts
+│   ├── mail/            # إرسال الإيميل + قوالب Handlebars عربية
+│   │   └── templates/      # 4 قوالب RTL
+│   ├── performance/     # تقييم الأداء — مقسّم حسب الوظيفة
+│   │   ├── categories/     # entity · dto/ · service · controller
+│   │   ├── plans/          # الخطة والمعايير · dto/ · service · controller
+│   │   ├── reviews/        # التقييم والدرجات · dto/ · service · controller
+│   │   ├── performance.constants.ts
+│   │   └── performance.module.ts
+│   ├── notifications/   # الإشعارات — مركز الاستماع لكل النظام
+│   │   ├── listeners/      # 6 مستمعين: طلبات، مهام، أداء، رواتب، متنوع، إيميل
+│   │   ├── dto/
+│   │   ├── notification.entity.ts
+│   │   ├── notifications.gateway.ts   # WebSocket
+│   │   └── recipients.service.ts      # مين لازم يسمع هالحدث
+│   └── reports/         # التقارير
+│       ├── services/       # 7 تقارير، كل واحد بملف
+│       ├── export/         # Excel + PDF + قالب + شعار NexusHR
+│       ├── interfaces/     # ReportResult · ReportScope
+│       ├── report-scope.guard.ts
+│       └── report-format.interceptor.ts
 ├── app.module.ts
 └── main.ts              # Helmet, Validation, Swagger, Filters, Interceptors
 ```
@@ -691,6 +819,8 @@ main
  └── feature/tasks             → merged
  └── feature/payroll           → merged
  └── feature/performance       → merged
+ └── feature/notifications     → merged
+ └── feature/reports           → merged
  └── (الموديولات القادمة)
 ```
 
@@ -701,10 +831,16 @@ main
 
 ## 🧭 الخطوات القادمة
 
-- [ ] **Module 10 — Notifications**: إشعار الموظف عند قرار على طلبه، تعيين مهمة، أو صدور نتيجة تقييمه
-- [ ] **Module 11 — Reports & Analytics**: تقارير الحضور، الرواتب، وملخصات الأداء لكل قسم
+- [x] ~~**Module 10 — Notifications**~~ ✅
+- [x] ~~**Module 11 — Reports & Analytics**~~ ✅
 - [ ] **Module 12 — RBAC**: مراجعة نهائية شاملة + ربط التحقق من القسم في `requests.review()` + راوت تعيين الأدوار
-- [ ] **توحيد الـ Pagination وإضافة الإندكسات** على كل الموديولات
+- [ ] **ديون تقنية مرصودة:**
+  - `working_hours` نوعه `float` وبيراكم فروقات أعشار — لازم يصير `decimal`
+  - الخصومات مخزّنة كمجموع واحد، فما بينفع تفصيلها إلا قسط القرض
+  - ممكن يتسجّل حضور لمستخدم ما إله ملف موظف
+  - فتح أرصدة الإجازات السنوية لسا يدوي — بده مهمة مجدولة أول السنة وعند التوظيف
+  - `TASK_DUE_SOON` بده مهمة يومية مجدولة
+- [ ] **توحيد الـ Pagination** على كل الموديولات
 - [ ] **قياس الأداء**: تعبئة قاعدة البيانات ببيانات ضخمة ثم قياس بـ k6 قبل أي تحسين
 - [ ] **Redis**: طابور للعمليات الثقيلة (توليد الرواتب)، Rate Limiting موزّع، وتخزين الـ Refresh Tokens
 - [ ] **Testing**: تنفيذ مجموعة اختبارات Postman الكاملة بعد اكتمال الواجهة الخلفية

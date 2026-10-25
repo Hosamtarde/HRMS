@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" width="260" height="64" role="img" aria-label="NexusHR">
+  <g fill="none" stroke="#1D4E89" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 46 L18 18 L46 46 L46 18" />
+  </g>
+  <circle cx="18" cy="18" r="6" fill="#1D4E89" />
+  <circle cx="18" cy="46" r="6" fill="#44526A" />
+  <circle cx="46" cy="46" r="6" fill="#44526A" />
+  <circle cx="46" cy="18" r="6" fill="#146B4C" />
+  <text x="72" y="41" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif" font-size="27" font-weight="700" letter-spacing="-0.5">
+    <tspan fill="#101A2B">Nexus</tspan><tspan fill="#1D4E89">HR</tspan>
+  </text>
+</svg>
