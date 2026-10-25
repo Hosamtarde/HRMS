@@ -1,7 +1,10 @@
 <div align="center">
 
-<img src="docs/screenshots/logo.png" width="110" alt="Palestine Polytechnic University" />
+<img src="docs/screenshots/nexushr-logo.svg" width="260" alt="NexusHR" />
 
+<br><br>
+
+<img src="docs/screenshots/logo.png" width="90" alt="Palestine Polytechnic University" />
 # NexusHR — Human Resource Management System
 
 **Graduation Project — Palestine Polytechnic University**
