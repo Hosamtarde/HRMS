@@ -7,10 +7,13 @@ import { Role } from '../../common/enums/enums';
 import { ReportQueryDto } from './dto/report-query.dto';
 import { ReportFormatInterceptor } from './report-format.interceptor';
 import { AttendanceReportService } from './services/attendance-report.service';
+import { ReportScopeGuard } from './report-scope.guard';
+import { CurrentScope } from './decorators/report-scope.decorator';
+import type { ReportScope } from './interfaces/report-scope.interface';
 
 @ApiBearerAuth()
 @Controller('reports')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ReportScopeGuard)
 @Roles(Role.HR_ADMIN, Role.MANAGER)
 @UseInterceptors(ReportFormatInterceptor)
 export class ReportsController {
@@ -19,7 +22,9 @@ export class ReportsController {
   ) {}
 
   @Get('attendance')
-  attendance(@Query() query: ReportQueryDto) {
-    return this.attendanceReportService.build(query);
+  attendance(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+    return this.attendanceReportService.build(query, scope);
   }
+
+  
 }

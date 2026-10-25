@@ -5,6 +5,7 @@ import { EmployeeProfileEntity } from '../../employees/employee-profile.entity';
 import { AttendanceEntity } from '../../attendance/attendance.entity';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import { ReportResult } from '../interfaces/report-result.interface';
+import { ReportScope } from '../interfaces/report-scope.interface';
 
 interface AttendanceRow {
   employee: string;
@@ -23,7 +24,7 @@ export class AttendanceReportService {
     private readonly profilesRepository: Repository<EmployeeProfileEntity>,
   ) {}
 
-  async build(query: ReportQueryDto): Promise<ReportResult> {
+    async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
     const builder = this.profilesRepository
       .createQueryBuilder('p')
       .innerJoin('p.user', 'u')
@@ -61,9 +62,9 @@ export class AttendanceReportService {
       .orderBy('d.department_name', 'ASC')
       .addOrderBy('u.first_name', 'ASC');
 
-    if (query.departmentId) {
-      builder.andWhere('p.department_id = :departmentId', {
-        departmentId: query.departmentId,
+    if (scope.departmentIds) {
+      builder.andWhere('p.department_id IN (:...departmentIds)', {
+        departmentIds: scope.departmentIds,
       });
     }
 
