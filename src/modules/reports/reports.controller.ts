@@ -14,6 +14,7 @@ import { LeaveReportService } from './services/leave-report.service';
 import { PayrollReportService } from './services/payroll-report.service';
 import { PerformanceReportService } from './services/performance-report.service';
 import { TasksReportService } from './services/tasks-report.service';
+import { RecruitmentReportService } from './services/recruitment-report.service';
 
 @ApiBearerAuth()
 @Controller('reports')
@@ -27,6 +28,7 @@ export class ReportsController {
     private readonly payrollReportService: PayrollReportService,
     private readonly performanceReportService: PerformanceReportService,
     private readonly tasksReportService: TasksReportService,
+    private readonly recruitmentReportService: RecruitmentReportService,
   ) {}
 
   @Get('attendance')
@@ -53,5 +55,11 @@ export class ReportsController {
   @Get('tasks')
   tasks(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
     return this.tasksReportService.build(query, scope);
+  }
+
+  @Roles(Role.HR_ADMIN)
+  @Get('recruitment')
+  recruitment(@Query() query: ReportQueryDto) {
+    return this.recruitmentReportService.build(query);
   }
 }
