@@ -203,6 +203,23 @@ College of Information Technology and Computer Engineering · Department of IT a
 
 ---
 
+### 🧩 الهيكل التنظيمي
+
+<div align="center">
+<img src="docs/screenshots/org-chart.png" width="860" alt="Org chart tree view" />
+<p><em>عرض الشجرة — بحث، فلترة بالقسم، وتحكم بعدد المستويات المعروضة</em></p>
+</div>
+
+<div align="center">
+<img src="docs/screenshots/org-chart-list.png" width="860" alt="Org chart list view" />
+<p><em>عرض القائمة — نفس البيانات كجدول قابل للبحث والفلترة بالمدير، مع ترقيم</em></p>
+</div>
+
+> الشاشة بتعرض الاسم والمسمى الوظيفي والقسم وعدد المرؤوسين — وبس. لا راتب ولا تقييم ولا رصيد إجازات.
+> والعرضان من راوتين: `GET /org-chart` للشجرة و`GET /org-chart/list` للجدول.
+
+---
+
 ### 🔔 الإشعارات و 📊 التقارير
 
 <table>
