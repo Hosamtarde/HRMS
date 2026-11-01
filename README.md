@@ -19,9 +19,9 @@ College of Information Technology and Computer Engineering · Department of IT a
 [![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 
-[![Progress](https://img.shields.io/badge/modules-11%2F12%20completed-brightgreen?style=flat-square)]()
-[![Routes](https://img.shields.io/badge/API%20routes-89%20mapped-blue?style=flat-square)]()
-[![Tables](https://img.shields.io/badge/DB%20tables-19%20migrations-orange?style=flat-square)]()
+[![Progress](https://img.shields.io/badge/modules-14%2F14%20completed-brightgreen?style=flat-square)]()
+[![Routes](https://img.shields.io/badge/API%20routes-96%20mapped-blue?style=flat-square)]()
+[![Tables](https://img.shields.io/badge/DB%20tables-20%20tables%20%C2%B7%2022%20migrations-orange?style=flat-square)]()
 [![Screens](https://img.shields.io/badge/UI%20screens-44%20designed-9146FF?style=flat-square)]()
 [![Status](https://img.shields.io/badge/status-in%20development-yellow?style=flat-square)]()
 [![License](https://img.shields.io/badge/license-private-lightgrey?style=flat-square)]()
@@ -42,8 +42,8 @@ College of Information Technology and Computer Engineering · Department of IT a
 |---|---|
 | **المستودع** | <https://github.com/Hosamtarde/HRMS> |
 | **الواجهة الخلفية** | NestJS + TypeScript · MySQL · TypeORM Migrations |
-| **عدد الـ Endpoints الحالية** | 89 route |
-| **عدد الـ Migrations** | 19 |
+| **عدد الـ Endpoints الحالية** | 96 route |
+| **عدد الجداول / الـ Migrations** | 20 جدول · 22 migration |
 | **عدد شاشات التصميم** | 44 شاشة (4 أدوار + نسخة موبايل + نسخة عربية RTL) |
 | **لغات الواجهة** | إنجليزي (LTR) + عربي (RTL) — كل شاشة فيها مفتاح تبديل |
 
@@ -278,7 +278,11 @@ Applicant  →  Employee  →  Manager  →  HR Admin
 | 9 | **Performance Evaluation** | ✅ | 5 جداول، خطط بمعايير وأوزان مجموعها 100، نسبة نهائية موزونة |
 | 10 | **Notifications** | ✅ | 13 حدث من 8 موديولات، دفع فوري بـ WebSocket، وإيميل عربي RTL |
 | 11 | **Reports & Analytics** | ✅ | 7 تقارير، كل واحد بـ JSON / Excel / PDF من نفس الـ Endpoint |
-| 12 | **RBAC — مراجعة نهائية** | ⏳ | — |
+| 12 | **RBAC — مراجعة نهائية** | ✅ | نطاق المدير من الشجرة، تدوير التوكنات، تحصين رفع الملفات، إقفال Swagger بالإنتاج |
+| 13 | **Org Chart** | ✅ | عمود `reports_to`، استعلامات تكرارية، منع الدورات، جذر واحد، عرض شجرة وقائمة |
+| 14 | **Data Integrity** | ⏳ | قيود فريدة، أقفال، فهارس، توحيد التواريخ |
+| 15 | **Training Recommendations** | 📋 مخطط | اقتراح دورات من فجوات التقييم |
+| 16 | **Chatbot** | 📋 مخطط | مساعد محادثة فوق الراوتات الموجودة بصلاحية المستخدم |
 
 ---
 
@@ -454,6 +458,62 @@ GET /reports/attendance?from=2026-09-01&to=2026-10-25&format=pdf   → PDF
 
 **واستثناءان مقصودان:** تقرير **الرواتب** للـ HR فقط (الراتب معلومة شخصية مش تشغيلية)، وتقرير **التوظيف** للـ HR فقط (المتقدّم ما إله قسم، فالنطاق بلا معنى عليه).
 
+### 1️⃣3️⃣ الهيكل التنظيمي هو مصدر الصلاحيات، لا شاشة عرض
+
+قبل هالموديول كان النظام يعرف **مدير القسم** بس. وهاد سؤال مختلف عن **مدير هذا الموظف** — وكل صلاحية بالنظام مبنية على الثاني.
+
+عمود واحد `employee_profiles.reports_to` بيشير على `users(user_id)`، ومنه بنبني الشجرة كاملة باستعلام تكراري:
+
+```sql
+WITH RECURSIVE subtree AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, s.depth + 1 FROM employee_profiles c
+  JOIN subtree s ON c.reports_to = s.user_id WHERE s.depth < 10
+)
+```
+
+**وأربع قواعد محروسة بالكود:**
+
+- **منع الدورات** — الفحص بيصير ضد **شجرة الموظف كاملة** مش ضد مديره المباشر. فحص واحد بيغطي «مدير حاله» والحلقات الطويلة مع بعض
+- **جذر واحد** — ممنوع تنقسم المنشأة لشجرتين منفصلتين
+- **قفل تشاؤمي** عند تعديل المدير، فما بيصير تعديلان متزامنان يبنوا شجرة مكسورة
+- **حد عمق 10** على كل استعلام تكراري — حزام أمان لو دخلت دورة بالبيانات رغم كل إشي
+
+و`departments.manager_id` ضلّ موجود، بس **للعرض بس** — الصلاحيات كلها انتقلت لـ `reports_to`.
+
+### 1️⃣4️⃣ الدور لا يكفي — لازم السؤال الصح
+
+قبل الهيكل، أقوى فحص كان ممكن نكتبه هو «هل دوره مدير؟». والنتيجة إنه **أي مدير كان بيقدر يوافق على أي طلب بالشركة**، ويشوف حضور كل الموظفين، ويفتح سجل أي حدا.
+
+هلأ كل هدول بيسألوا السؤال الصح:
+
+```typescript
+const inScope = await this.orgChartService.isInSubtree(reviewerId, request.user_id);
+```
+
+**والـ HR مستثنى** لأنه جذر الشجرة — كل الموظفين داخل شجرته أصلاً، والاستثناء الصريح بيحمي الحالة لو تعيّن HR ثاني مش هو الجذر.
+
+### 1️⃣5️⃣ التوكن يُدوَّر، وإعادة استخدامه إشارة سرقة
+
+الـ Refresh Token بينحفظ **كـ hash** بجدول `refresh_tokens`، مش كنص. ولو تسرّبت قاعدة البيانات، اللي فيها ما بينفع يسجّل دخول.
+
+وكل عملية تجديد بتلغي التوكن المستعمَل وبتصدر واحد جديد. فلو حدا سرق توكن واستعمله، وبعدها صاحبه الأصلي استعمله — إحنا بنشوف **توكن ملغي بينستعمل**، وهاي علامة سرقة، فبنلغي **كل** توكنات المستخدم ونجبره يسجل دخول من جديد.
+
+و`POST /auth/logout` صار **يلغي فعلاً** بدل ما يرجع رسالة ويترك التوكن صالح أسبوع كامل.
+
+### 1️⃣6️⃣ امتداد الملف ونوعه كلاهما يُكتب من المتصفح
+
+فلتر رفع السيرة الذاتية كان بيقبل الملف إذا نجح **أي** من الشرطين — فملف تنفيذي اسمه `cv.pdf` كان بيمرّ.
+
+التصحيح بتلات طبقات:
+
+1. الشرطان **الاثنان** لازم ينجحوا
+2. بعد الحفظ، بنقرأ **أول خمس بايتات** من الملف الحقيقي — كل PDF بيبدأ بـ `%PDF-`. غير هيك بنحذفه ونرد `400`
+3. الاسم المخزَّن `randomUUID()` مش `Date.now()` — فما في دهس بين رفعتين بنفس الملي ثانية، ولا تخمين لأسماء ملفات الزملاء
+
+---
+
 ---
 
 ## 🛡️ ممارسات الجودة والأمان (Best Practices)
@@ -483,6 +543,14 @@ GET /reports/attendance?from=2026-09-01&to=2026-10-25&format=pdf   → PDF
 | **Aggregation in SQL** | التقارير بتحسب بـ `SUM` و `GROUP BY` بالداتابيز، مش بتجيب آلاف الصفوف للذاكرة |
 | **Parallel Queries** | لوحة المؤشرات بتشغّل 5 استعلامات بـ `Promise.all` بدل JOIN واحد بيولّد ضرب ديكارتي |
 | **Scope Guard** | نطاق الرؤية يُحسب مرة واحدة قبل التقرير، فما ينتسى على تقرير جديد |
+| **Subtree-based Scoping** | نطاق المدير محسوب من شجرة `reports_to`، فقائد فريق داخل قسم إله نطاق صحيح مش فاضي |
+| **Refresh Token Rotation** | تدوير عند كل تجديد، وكشف إعادة الاستخدام بيلغي كل توكنات المستخدم |
+| **Hashed Token Storage** | التوكنات محفوظة SHA-256 — تسريب قاعدة البيانات ما بيعطي جلسات صالحة |
+| **Magic-byte Validation** | التحقق من توقيع الملف الحقيقي لا من الامتداد والـ mimetype اللي بيكتبهم المتصفح |
+| **Randomized File Names** | أسماء الملفات المرفوعة `randomUUID()` — لا دهس ولا تخمين |
+| **Recursion Depth Guard** | كل استعلام تكراري محدود بعشر مستويات، فما بيعلّق السيرفر لو دخلت دورة |
+| **Environment-aware Swagger** | التوثيق التفاعلي بيشتغل بالتطوير بس، ومقفول بالإنتاج |
+| **Explicit CORS Origins** | قائمة نطاقات من متغير بيئة بدل `*` — لأنه النظام بيرسل توكنات |
 | **Bilingual UI (EN/AR)** | كل شاشة تدعم الإنجليزية (LTR) والعربية (RTL) بتبديل فوري |
 
 ---
@@ -579,15 +647,15 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 
 ## 🔑 نقاط الوصول (API Endpoints)
 
-> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **89 route**.
+> 📘 التوثيق الكامل والتفاعلي متاح على `/api/docs` بعد تشغيل المشروع. المجموع الحالي: **96 route**.
 
 ### Authentication
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
 | `POST` | `/auth/login` | تسجيل الدخول *(محدود بـ 5 محاولات/دقيقة)* | عام |
-| `POST` | `/auth/refresh` | تجديد الـ Access Token | عام |
+| `POST` | `/auth/refresh` | تجديد مع تدوير — التوكن القديم بينلغى | عام |
 | `GET` | `/auth/me` | بيانات المستخدم الحالي | 🔒 مسجل دخول |
-| `POST` | `/auth/logout` | تسجيل الخروج | 🔒 مسجل دخول |
+| `POST` | `/auth/logout` | تسجيل خروج فعلي — يلغي كل توكنات المستخدم | 🔒 مسجل دخول |
 
 ### Users
 | Method | Endpoint | الوصف | الحماية |
@@ -595,6 +663,7 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 | `GET` | `/users/me` | ملفي الشخصي | 🔒 مسجل دخول |
 | `PUT` | `/users/me` | تعديل بياناتي | 🔒 مسجل دخول |
 | `PATCH` | `/users/me/password` | تغيير كلمة المرور | 🔒 مسجل دخول |
+| `PATCH` | `/users/:id/role` | تعيين دور مستخدم *(ممنوع تغيير دورك أنت)* | 🔒 HR Admin |
 
 ### Departments
 | Method | Endpoint | الوصف | الحماية |
@@ -610,8 +679,8 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 |---|---|---|---|
 | `POST` | `/attendance/check-in` | تسجيل حضور (مرة واحدة يومياً) | 🔒 مسجل دخول |
 | `POST` | `/attendance/check-out` | تسجيل انصراف + حساب ساعات العمل | 🔒 مسجل دخول |
-| `GET` | `/attendance` | عرض كل سجلات الحضور | 🔒 Manager / HR Admin |
-| `GET` | `/attendance/employee/:id` | سجلات حضور موظف محدد | 🔒 Manager / HR Admin |
+| `GET` | `/attendance` | سجلات الحضور — **المدير يشوف شجرته فقط** | 🔒 Manager / HR Admin |
+| `GET` | `/attendance/employee/:id` | سجلات موظف محدد — `403` خارج شجرة المدير | 🔒 Manager / HR Admin |
 
 ### Employees
 | Method | Endpoint | الوصف | الحماية |
@@ -626,9 +695,9 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
 | `POST` | `/requests` | تقديم طلب جديد (مع فحص الرصيد للإجازات) | 🔒 مسجل دخول |
-| `GET` | `/requests` | عرض الطلبات (الخاصة بالمستخدم، أو الكل لـ Manager/HR) | 🔒 مسجل دخول |
+| `GET` | `/requests` | الطلبات — الموظف طلباته، المدير شجرته، الـ HR الكل | 🔒 مسجل دخول |
 | `GET` | `/requests/:id` | عرض طلب واحد | 🔒 صاحب الطلب أو Manager/HR |
-| `PUT` | `/requests/:id/review` | الموافقة أو الرفض *(يولّد جدول الأقساط للسلف)* | 🔒 Manager / HR Admin |
+| `PUT` | `/requests/:id/review` | موافقة أو رفض *(يولّد جدول الأقساط للسلف)* — فقط داخل شجرة المراجِع، وممنوع على طلبك أنت | 🔒 Manager / HR Admin |
 | `DELETE` | `/requests/:id` | حذف طلب **معلّق فقط** | 🔒 صاحب الطلب أو Manager/HR |
 
 ### Leave Types & Balances
@@ -656,6 +725,7 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 | `POST` | `/recruitment/apply` | تقديم طلب توظيف + رفع CV | 🌐 **عام (بدون تسجيل)** |
 | `GET` | `/recruitment` | عرض كل طلبات التوظيف | 🔒 HR Admin |
 | `GET` | `/recruitment/:id` | عرض طلب توظيف واحد | 🔒 HR Admin |
+| `GET` | `/recruitment/:id/cv` | تحميل السيرة الذاتية كملف PDF | 🔒 HR Admin |
 | `PUT` | `/recruitment/:id/status` | تحديث حالة الطلب | 🔒 HR Admin |
 | `DELETE` | `/recruitment/:id` | حذف طلب توظيف | 🔒 HR Admin |
 
@@ -738,6 +808,17 @@ docker exec hrms_mysql mysqldump -u hrms_user -phrms_pass --default-character-se
 
 > كل التقارير (ما عدا `dashboard`) بتاخد `?from=YYYY-MM-DD&to=YYYY-MM-DD` إجبارياً، مع تحقق إنه `to` مش قبل `from`. وبتقبل `?departmentId=` للفلترة — بس المدير ما بيقدر يطلب قسم مش إله.
 
+### Org Chart
+| Method | Endpoint | الوصف | الحماية |
+|---|---|---|---|
+| `GET` | `/org-chart` | الشجرة كاملة — مستويان مع عدد المرؤوسين لكل عقدة | 🔒 مسجل دخول |
+| `GET` | `/org-chart/me` | مديري، زملائي، موظفيي، وسلسلة المسؤولية فوقي | 🔒 مسجل دخول |
+| `GET` | `/org-chart/list` | جدول مسطّح بالبحث والفلترة والترقيم *(`?q=` `?departmentId=` `?managerId=`)* | 🔒 مسجل دخول |
+| `GET` | `/org-chart/:userId` | فرع موظف معيّن | 🔒 مسجل دخول |
+| `PUT` | `/org-chart/:userId/manager` | تعيين مدير — يرفض الدورات والجذر الثاني | 🔒 HR Admin |
+
+> الهيكل **يقرأه الجميع** — معرفة مين بيتبع مين معلومة عامة داخل المنشأة. اللي محمي هو التفاصيل (الراتب، التقييم، الرصيد) مش وجود الشخص.
+
 ### Activity Log
 | Method | Endpoint | الوصف | الحماية |
 |---|---|---|---|
@@ -758,12 +839,14 @@ src/
 │   └── interceptors/    # ResponseInterceptor (شكل موحّد للردود)
 ├── database/
 │   ├── data-source.ts   # إعدادات TypeORM CLI (للـ Migrations)
-│   ├── migrations/      # 19 ملف Migration مرقّمة بالتاريخ
+│   ├── migrations/      # 22 ملف Migration مرقّمة بالتاريخ
 │   └── seeds/           # بيانات تجريبية أولية
 ├── modules/
-│   ├── auth/            # تسجيل الدخول، JWT، Rate Limiting
+│   ├── auth/            # تسجيل الدخول، JWT، تدوير التوكنات، Rate Limiting
+│   │   └── refresh-token.entity.ts
 │   ├── users/           # إدارة بيانات المستخدمين
 │   ├── departments/     # إدارة الأقسام
+│   ├── org-chart/       # الهيكل التنظيمي — مصدر نطاق الصلاحيات
 │   ├── attendance/      # الحضور والانصراف
 │   ├── employees/       # إدارة الموظفين (Transaction + Soft Delete)
 │   ├── requests/        # طلبات الإجازة/السلفة/الاستئذان
@@ -809,27 +892,128 @@ docs/
 
 ## 🔄 أسلوب العمل الجماعي (Git Workflow)
 
-كل موديول بيتطور على فرع (branch) مستقل، ثم يُفتح Pull Request للمراجعة قبل الدمج على `main`:
+كل وحدة بتتطور على فرع مستقل، وبينفتح Pull Request للمراجعة قبل الدمج على `main`. وكل واحد فينا بيكوميت **بهويته هو** حتى لو الشغل صار على جهاز واحد.
+
+### الفروع المدموجة
 
 ```
 main
- └── feature/auth              → merged
- └── feature/departments       → merged
- └── feature/attendance        → merged
- └── feature/employees         → merged
- └── feature/requests          → merged
- └── feature/leave-management  → merged
- └── feature/recruitment       → merged
- └── feature/tasks             → merged
- └── feature/payroll           → merged
- └── feature/performance       → merged
- └── feature/notifications     → merged
- └── feature/reports           → merged
- └── (الموديولات القادمة)
+ ├── feature/auth · departments · attendance · employees · requests
+ ├── feature/leave-management · recruitment · tasks · payroll
+ ├── feature/performance · notifications · reports
+ ├── feature/org-chart                → merged (#19)
+ ├── fix/security-hardening           → merged (#21)
+ └── fix/data-integrity               → قيد العمل
 ```
 
-نظام تسمية الـ Commits يتبع [Conventional Commits](https://www.conventionalcommits.org/):
-`feat:` ميزة جديدة · `fix:` إصلاح · `chore:` إعدادات · `docs:` توثيق · `test:` اختبار موثّق
+تسمية الفروع: `feature/<اسم>` للميزات، `fix/<اسم>` للإصلاحات.
+تسمية الكوميتات: [Conventional Commits](https://www.conventionalcommits.org/) — `feat:` · `fix:` · `chore:` · `docs:` · `test:`
+
+---
+
+### 1️⃣ ابدأ من `main` محدّث
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b fix/data-integrity
+```
+
+### 2️⃣ اضبط هوية الكاتب **قبل أول كوميت**
+
+> ⚠️ هاي أكثر خطوة بننساها. لو نسيتها، الكوميتات بتنكتب باسم صاحب الجهاز.
+
+```bash
+git config --local user.name "<github-username>"
+git config --local user.email "<github-email>"
+git config --local --list | grep user
+```
+
+| العضو | اسم الحساب | الإيميل |
+|---|---|---|
+| Hosam Tarade | `Hosamtarde` | الافتراضي على الجهاز |
+| Mohammed Tarade | `mohammadtar-1` | `mohammadtaradeh990@gmail.com` |
+| Bahaa Zahedah | — | — |
+
+### 3️⃣ اكتب، ابنِ، كوميت
+
+```bash
+npm run build                      # لازم يمر قبل أي كوميت
+git add <الملفات>
+git commit -m "fix(scope): سطر ملخّص" -m "فقرة بتشرح ليش، مش شو"
+git log -1 --pretty=format:"%an <%ae>%n%s"    # تأكد من اسم الكاتب
+```
+
+### 4️⃣ ادفع وافتح PR
+
+```bash
+git push -u origin fix/data-integrity
+```
+
+لو البرانش لازم ينرفع **بحساب عضو تاني**:
+
+```bash
+git remote set-url origin https://<username>@github.com/Hosamtarde/HRMS.git
+git push -u origin fix/data-integrity
+# وبعد ما تخلص
+git remote set-url origin https://github.com/Hosamtarde/HRMS.git
+```
+
+### 5️⃣ بعد الدمج — نظّف وحدّث
+
+```bash
+git checkout main
+git pull origin main
+
+npm install
+npm run build
+npm run migration:run              # مهم: ممكن يكون في ترحيل جديد
+
+git branch -d fix/data-integrity
+git push origin --delete fix/data-integrity
+
+git config --local --unset user.name
+git config --local --unset user.email
+```
+
+---
+
+### 🔧 إصلاح الأخطاء الشائعة
+
+**كوميت راح على `main` بالغلط** — انقله لبرانش ورجّع main:
+
+```bash
+git stash
+git branch fix/my-branch
+git reset --hard origin/main
+git checkout fix/my-branch
+git stash pop
+```
+
+**الكوميتات انكتبت باسم غلط** — أعد ختمها كلها:
+
+```bash
+git config --local user.name "<الاسم الصحيح>"
+git config --local user.email "<الإيميل الصحيح>"
+git rebase --exec "git commit --amend --no-edit --reset-author" main
+git push --force-with-lease origin <البرانش>
+```
+
+**الدفع انرفض (non-fast-forward):**
+
+```bash
+git pull --rebase origin main
+```
+
+**بدك تشوف شو على البرانش قبل الـ PR:**
+
+```bash
+git log --oneline main..<البرانش>
+git rev-list --count main..<البرانش>
+git diff --stat main..<البرانش>
+```
+
+**سطر «X added N commits» على GitHub** بيعرض مين **دفع**، مش مين كتب. الكاتب بيظهر على الكوميت نفسه، وإحصائيات المساهمة بتُحسب من إيميل الكاتب.
 
 ---
 
@@ -837,18 +1021,27 @@ main
 
 - [x] ~~**Module 10 — Notifications**~~ ✅
 - [x] ~~**Module 11 — Reports & Analytics**~~ ✅
-- [ ] **Module 12 — RBAC**: مراجعة نهائية شاملة + ربط التحقق من القسم في `requests.review()` + راوت تعيين الأدوار
-- [ ] **ديون تقنية مرصودة:**
-  - `working_hours` نوعه `float` وبيراكم فروقات أعشار — لازم يصير `decimal`
+- [x] ~~**Module 12 — RBAC**~~ ✅ — نطاق المدير من الشجرة، تدوير التوكنات، تحصين الرفع، إقفال Swagger، CORS
+- [x] ~~**Module 13 — Org Chart**~~ ✅ — شجرة وقائمة، منع الدورات، جذر واحد، إشعار تغيير المدير
+- [ ] **Module 14 — Data Integrity** *(قيد العمل)*
+  - `UNIQUE(user_id, attendance_date)` — ضغطتان على «تسجيل دخول» بتعملوا صفّين
+  - `UNIQUE(user_id, salary_month)` — توليد راتب مرتين بيخصم قسط القرض مرتين
+  - قفل تشاؤمي على صف الطلب بالمراجعة
+  - `working_hours` من `float` لـ `decimal`
+  - توحيد `getToday()` بالتوقيت المحلي — الوردية الليلية بتسجّل على تاريخ أمس
+  - أربع فهارس ناقصة + استبدال `DATE(column)` بنطاق نصف مفتوح
+  - ترقيم للقوائم اللي بترجع الجدول كله
+- [ ] **Module 15 — Training Recommendations**: اقتراح دورات من فجوات التقييم المتكررة، بمراجعة بشرية قبل الوصول للموظف
+- [ ] **Module 16 — Chatbot**: مساعد محادثة بيستدعي الراوتات الموجودة **بتوكن المستخدم نفسه**، فالصلاحيات بتشتغل بلا سطر إضافي
+- [ ] **ديون تقنية متبقية:**
   - الخصومات مخزّنة كمجموع واحد، فما بينفع تفصيلها إلا قسط القرض
-  - ممكن يتسجّل حضور لمستخدم ما إله ملف موظف
   - فتح أرصدة الإجازات السنوية لسا يدوي — بده مهمة مجدولة أول السنة وعند التوظيف
   - `TASK_DUE_SOON` بده مهمة يومية مجدولة
-- [ ] **توحيد الـ Pagination** على كل الموديولات
-- [ ] **قياس الأداء**: تعبئة قاعدة البيانات ببيانات ضخمة ثم قياس بـ k6 قبل أي تحسين
-- [ ] **Redis**: طابور للعمليات الثقيلة (توليد الرواتب)، Rate Limiting موزّع، وتخزين الـ Refresh Tokens
-- [ ] **Testing**: تنفيذ مجموعة اختبارات Postman الكاملة بعد اكتمال الواجهة الخلفية
-- [ ] **Frontend**: ReactJS + Bootstrap بناءً على ملفات التصميم المرفقة
+  - نطاق التقارير لسا بالقسم مش بالأشخاص — تشديده بده تعديل سبع خدمات
+- [ ] **قياس الأداء**: تعبئة بيانات ضخمة ثم قياس بـ k6 قبل أي تحسين
+- [ ] **Redis**: طابور لتوليد الرواتب، Rate Limiting موزّع، وتخزين الـ Refresh Tokens
+- [ ] **Testing**: مجموعة Postman كاملة بعد اكتمال الواجهة الخلفية
+- [ ] **Frontend**: ReactJS + Bootstrap بناءً على ملفات التصميم
 
 ---
 
