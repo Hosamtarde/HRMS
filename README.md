@@ -109,6 +109,10 @@ College of Information Technology and Computer Engineering · Department of IT a
 <td><img src="docs/screenshots/application-detail.png" alt="Application detail" /><p align="center"><em>تفاصيل طلب التوظيف والسيرة الذاتية</em></p></td>
 <td><img src="docs/screenshots/tasks.png" alt="Tasks" /><p align="center"><em>إدارة المهام</em></p></td>
 </tr>
+<tr>
+<td><img src="docs/screenshots/org-chart.webp" alt="Org chart tree view" /><p align="center"><em>الهيكل التنظيمي — عرض الشجرة</em></p></td>
+<td><img src="docs/screenshots/org-chart-list.webp" alt="Org chart list view" /><p align="center"><em>الهيكل التنظيمي — عرض القائمة</em></p></td>
+</tr>
 </table>
 
 ---
@@ -200,23 +204,6 @@ College of Information Technology and Computer Engineering · Department of IT a
 <img src="docs/screenshots/components.png" width="700" alt="Component library" />
 <p><em>مكتبة المكوّنات: الألوان، الخطوط، الأزرار، الحقول، الجداول، والشارات</em></p>
 </div>
-
----
-
-### 🧩 الهيكل التنظيمي
-
-<div align="center">
-<img src="docs/screenshots/org-chart.png" width="860" alt="Org chart tree view" />
-<p><em>عرض الشجرة — بحث، فلترة بالقسم، وتحكم بعدد المستويات المعروضة</em></p>
-</div>
-
-<div align="center">
-<img src="docs/screenshots/org-chart-list.png" width="860" alt="Org chart list view" />
-<p><em>عرض القائمة — نفس البيانات كجدول قابل للبحث والفلترة بالمدير، مع ترقيم</em></p>
-</div>
-
-> الشاشة بتعرض الاسم والمسمى الوظيفي والقسم وعدد المرؤوسين — وبس. لا راتب ولا تقييم ولا رصيد إجازات.
-> والعرضان من راوتين: `GET /org-chart` للشجرة و`GET /org-chart/list` للجدول.
 
 ---
 
