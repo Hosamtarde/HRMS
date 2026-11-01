@@ -1,0 +1,256 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import {
+  ManagerChangeResult,
+  OrgAncestor,
+  OrgCircle,
+  OrgNode,
+  OrgPerson,
+} from './interfaces/org-chart.interface';
+
+interface PersonRow {
+  user_id: number;
+  reports_to: number | null;
+  first_name: string;
+  last_name: string;
+  role: string;
+  position: string | null;
+  department_name: string | null;
+  depth?: number;
+}
+
+const PERSON_FIELDS = `p.user_id AS user_id, p.reports_to AS reports_to, u.first_name AS first_name, u.last_name AS last_name, u.role AS role, p.position AS position, d.department_name AS department_name`;
+
+const PERSON_FROM = `FROM employee_profiles p JOIN users u ON u.user_id = p.user_id LEFT JOIN departments d ON d.department_id = p.department_id`;
+
+const SUBTREE_SQL = `WITH RECURSIVE subtree AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, s.depth + 1 FROM employee_profiles c
+  JOIN subtree s ON c.reports_to = s.user_id WHERE s.depth < ?
+)
+SELECT ${PERSON_FIELDS}, s.depth AS depth
+FROM subtree s
+JOIN employee_profiles p ON p.user_id = s.user_id
+JOIN users u ON u.user_id = p.user_id
+LEFT JOIN departments d ON d.department_id = p.department_id
+ORDER BY s.depth, u.first_name`;
+
+const SUBTREE_CONTAINS_SQL = `WITH RECURSIVE subtree AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, s.depth + 1 FROM employee_profiles c
+  JOIN subtree s ON c.reports_to = s.user_id WHERE s.depth < ?
+)
+SELECT user_id FROM subtree WHERE user_id = ? LIMIT 1`;
+
+const ANCESTORS_SQL = `WITH RECURSIVE chain AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, ch.depth + 1 FROM employee_profiles c
+  JOIN chain ch ON c.user_id = ch.reports_to WHERE ch.depth < ?
+)
+SELECT ${PERSON_FIELDS}, ch.depth AS depth
+FROM chain ch
+JOIN employee_profiles p ON p.user_id = ch.user_id
+JOIN users u ON u.user_id = p.user_id
+LEFT JOIN departments d ON d.department_id = p.department_id
+WHERE ch.depth > 0
+ORDER BY ch.depth`;
+
+@Injectable()
+export class OrgChartService {
+  private readonly maxDepth = 10;
+  private readonly chartDepth = 2;
+
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+
+  async getChart(rootUserId?: number): Promise<OrgNode> {
+    const root = rootUserId ?? (await this.findRoot());
+    const rows: PersonRow[] = await this.dataSource.query(SUBTREE_SQL, [
+      root,
+      this.chartDepth,
+    ]);
+    if (!rows.length) {
+      throw new NotFoundException('Employee profile not found');
+    }
+    const counts = await this.countDirectReports(rows.map((r) => r.user_id));
+    return this.buildTree(rows, counts, root);
+  }
+
+  async getCircle(userId: number): Promise<OrgCircle> {
+    const rows: PersonRow[] = await this.dataSource.query(
+      `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.user_id = ?`,
+      [userId],
+    );
+    if (!rows.length) {
+      throw new NotFoundException('Employee profile not found');
+    }
+    const row = rows[0];
+    const managerRows: PersonRow[] = row.reports_to
+      ? await this.dataSource.query(
+          `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.user_id = ?`,
+          [row.reports_to],
+        )
+      : [];
+    const peerRows: PersonRow[] = await this.dataSource.query(
+      `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.reports_to <=> ? AND p.user_id <> ? ORDER BY u.first_name`,
+      [row.reports_to, userId],
+    );
+    const reportRows: PersonRow[] = await this.dataSource.query(
+      `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.reports_to = ? ORDER BY u.first_name`,
+      [userId],
+    );
+    return {
+      self: this.toPerson(row),
+      manager: managerRows.length ? this.toPerson(managerRows[0]) : null,
+      peers: peerRows.map((r) => this.toPerson(r)),
+      directReports: reportRows.map((r) => this.toPerson(r)),
+      chain: await this.getAncestors(userId),
+    };
+  }
+
+  async getAncestors(userId: number): Promise<OrgAncestor[]> {
+    const rows: PersonRow[] = await this.dataSource.query(ANCESTORS_SQL, [
+      userId,
+      this.maxDepth,
+    ]);
+    return rows.map((r) => ({ ...this.toPerson(r), depth: Number(r.depth) }));
+  }
+
+  async isInSubtree(
+    rootUserId: number,
+    candidateUserId: number,
+  ): Promise<boolean> {
+    const rows = await this.dataSource.query(SUBTREE_CONTAINS_SQL, [
+      rootUserId,
+      this.maxDepth,
+      candidateUserId,
+    ]);
+    return rows.length > 0;
+  }
+
+  async changeManager(
+    userId: number,
+    managerId: number | null,
+  ): Promise<ManagerChangeResult> {
+    return this.dataSource.transaction(async (manager) => {
+      const current = await manager.query(
+        `SELECT user_id, reports_to FROM employee_profiles WHERE user_id = ? FOR UPDATE`,
+        [userId],
+      );
+      if (!current.length) {
+        throw new NotFoundException('Employee profile not found');
+      }
+      const previousManagerId: number | null = current[0].reports_to;
+      if (managerId !== null) {
+        const target = await manager.query(
+          `SELECT user_id FROM employee_profiles WHERE user_id = ?`,
+          [managerId],
+        );
+        if (!target.length) {
+          throw new BadRequestException(
+            'The new manager has no employee profile',
+          );
+        }
+        const cycle = await manager.query(SUBTREE_CONTAINS_SQL, [
+          userId,
+          this.maxDepth,
+          managerId,
+        ]);
+        if (cycle.length) {
+          throw new BadRequestException(
+            'This change would create a cycle in the hierarchy',
+          );
+        }
+      } else {
+        const otherRoots = await manager.query(
+          `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL AND user_id <> ? LIMIT 1`,
+          [userId],
+        );
+        if (otherRoots.length) {
+          throw new BadRequestException('The hierarchy already has a root');
+        }
+      }
+      await manager.query(
+        `UPDATE employee_profiles SET reports_to = ? WHERE user_id = ?`,
+        [managerId, userId],
+      );
+      return { userId, previousManagerId, managerId };
+    });
+  }
+
+  private async findRoot(): Promise<number> {
+    const rows = await this.dataSource.query(
+      `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL ORDER BY user_id LIMIT 1`,
+    );
+    if (!rows.length) {
+      throw new NotFoundException('The organisation chart has no root');
+    }
+    return Number(rows[0].user_id);
+  }
+
+  private async countDirectReports(
+    userIds: number[],
+  ): Promise<Map<number, number>> {
+    const counts = new Map<number, number>();
+    if (!userIds.length) {
+      return counts;
+    }
+    const placeholders = userIds.map(() => '?').join(', ');
+    const rows = await this.dataSource.query(
+      `SELECT reports_to AS manager_id, COUNT(*) AS total FROM employee_profiles WHERE reports_to IN (${placeholders}) GROUP BY reports_to`,
+      userIds,
+    );
+    for (const row of rows) {
+      counts.set(Number(row.manager_id), Number(row.total));
+    }
+    return counts;
+  }
+
+  private buildTree(
+    rows: PersonRow[],
+    counts: Map<number, number>,
+    rootUserId: number,
+  ): OrgNode {
+    const nodes = new Map<number, OrgNode>();
+    for (const row of rows) {
+      nodes.set(Number(row.user_id), {
+        ...this.toPerson(row),
+        directReportsCount: counts.get(Number(row.user_id)) ?? 0,
+        children: [],
+      });
+    }
+    for (const row of rows) {
+      const id = Number(row.user_id);
+      if (id === rootUserId || row.reports_to === null) {
+        continue;
+      }
+      const parent = nodes.get(Number(row.reports_to));
+      const node = nodes.get(id);
+      if (parent && node) {
+        parent.children.push(node);
+      }
+    }
+    const root = nodes.get(rootUserId);
+    if (!root) {
+      throw new NotFoundException('Employee profile not found');
+    }
+    return root;
+  }
+
+  private toPerson(row: PersonRow): OrgPerson {
+    return {
+      userId: Number(row.user_id),
+      fullName: `${row.first_name} ${row.last_name}`,
+      role: row.role,
+      position: row.position,
+      departmentName: row.department_name,
+    };
+  }
+}
