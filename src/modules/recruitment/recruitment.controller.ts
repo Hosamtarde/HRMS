@@ -12,6 +12,8 @@ import {
   UseGuards,
   UseInterceptors,
   BadRequestException,
+  NotFoundException, 
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
@@ -27,6 +29,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { createReadStream, existsSync } from 'fs';
+import { basename, join } from 'path';
 
 const PDF_SIGNATURE = '%PDF-';
 
@@ -60,6 +64,8 @@ export class RecruitmentController {
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
+
+
   async apply(
     @Body() dto: ApplyDto,
     @UploadedFile() file: Express.Multer.File,
@@ -94,6 +100,33 @@ export class RecruitmentController {
   @Roles(Role.HR_ADMIN)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.recruitmentService.findAll(paginationDto);
+  }
+
+  @ApiBearerAuth()
+  @Get(':id/cv')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.HR_ADMIN)
+  async downloadCv(@Param('id', ParseIntPipe) id: number) {
+    const application = await this.recruitmentService.findOne(id);
+
+    if (!application.cv_file) {
+      throw new NotFoundException('This application has no CV file');
+    }
+
+    const filePath = join(
+      process.cwd(),
+      'uploads',
+      basename(application.cv_file),
+    );
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('The CV file is missing from storage');
+    }
+
+    return new StreamableFile(createReadStream(filePath), {
+      type: 'application/pdf',
+      disposition: `attachment; filename="cv-${id}.pdf"`,
+    });
   }
 
   @ApiBearerAuth()
