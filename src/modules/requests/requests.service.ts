@@ -13,11 +13,11 @@ import { LeaveTypesService } from '../leave-types/leave-types.service';
 import { LeaveBalancesService } from '../leave-balances/leave-balances.service';
 import { LeaveTypeEntity } from '../leave-types/leave-type.entity';
 import { PaymentType } from '../../common/enums/enums';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.service';
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 import { LOW_LEAVE_BALANCE_THRESHOLD } from '../leave-balances/leave-balance.constants';
-
+import { OrgChartService } from '../org-chart/org-chart.service';
 
 @Injectable()
 export class RequestsService {
@@ -31,6 +31,7 @@ export class RequestsService {
     private readonly dataSource: DataSource,
     private readonly loanRepaymentsService: LoanRepaymentsService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly orgChartService: OrgChartService,
   ) {}
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
@@ -115,10 +116,17 @@ export class RequestsService {
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<RequestEntity>> {
     const { page, limit } = paginationDto;
-    const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
+
+    let where: Record<string, unknown> = { user_id: userId };
+    if (role === Role.HR_ADMIN) {
+      where = {};
+    } else if (role === Role.MANAGER) {
+      const scopeIds = await this.orgChartService.getSubtreeIds(userId);
+      where = scopeIds.length ? { user_id: In(scopeIds) } : { user_id: userId };
+    }
 
     const [data, total] = await this.requestsRepository.findAndCount({
-      where: isManagerOrAdmin ? {} : { user_id: userId },
+      where,
       relations: { user: true, reviewer: true },
       order: { created_at: 'DESC', request_id: 'DESC' },
       skip: (page - 1) * limit,
@@ -172,6 +180,23 @@ export class RequestsService {
           `Review rejected: request #${id} already ${request.request_status}`,
         );
         throw new BadRequestException('This request has already been processed');
+      }
+
+      const [reviewer] = await manager.query(
+        `SELECT role FROM users WHERE user_id = ?`,
+        [reviewerId],
+      );
+      if (reviewer?.role !== Role.HR_ADMIN) {
+        if (request.user_id === reviewerId) {
+          throw new ForbiddenException('You cannot review your own request');
+        }
+        const inScope = await this.orgChartService.isInSubtree(
+          reviewerId,
+          request.user_id,
+        );
+        if (!inScope) {
+          throw new ForbiddenException('This employee does not report to you');
+        }
       }
 
       if (

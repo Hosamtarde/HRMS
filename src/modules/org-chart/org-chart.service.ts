@@ -76,6 +76,14 @@ LEFT JOIN departments d ON d.department_id = p.department_id
 WHERE ch.depth > 0
 ORDER BY ch.depth`;
 
+const SUBTREE_IDS_SQL = `WITH RECURSIVE subtree AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, s.depth + 1 FROM employee_profiles c
+  JOIN subtree s ON c.reports_to = s.user_id WHERE s.depth < ?
+)
+SELECT user_id FROM subtree`;
+
 @Injectable()
 export class OrgChartService {
   private readonly maxDepth = 10;
@@ -175,6 +183,14 @@ export class OrgChartService {
       candidateUserId,
     ]);
     return rows.length > 0;
+  }
+
+  async getSubtreeIds(rootUserId: number): Promise<number[]> {
+    const rows = await this.dataSource.query(SUBTREE_IDS_SQL, [
+      rootUserId,
+      this.maxDepth,
+    ]);
+    return rows.map((row: { user_id: number }) => Number(row.user_id));
   }
 
   async changeManager(
