@@ -12,10 +12,14 @@ import {
   UseGuards,
   UseInterceptors,
   BadRequestException,
+  NotFoundException, 
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { randomUUID } from 'crypto';
+import { promises as fsp } from 'fs';
 import { UpdateApplicationStatusDto } from './dto/update-status.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { RecruitmentService } from './recruitment.service';
@@ -23,41 +27,71 @@ import { ApplyDto } from './dto/apply.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { Role, RecruitmentStatus } from '../../common/enums/enums';
+import { Role } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { createReadStream, existsSync } from 'fs';
+import { basename, join } from 'path';
+
+const PDF_SIGNATURE = '%PDF-';
 
 @Controller('recruitment')
 export class RecruitmentController {
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
   @Post('apply')
+  @Throttle({ default: { limit: 3, ttl: 3600000 } })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('cv_file', {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, callback) => {
-          const uniqueName = `${Date.now()}${extname(file.originalname)}`;
-          callback(null, uniqueName);
+          callback(null, `${randomUUID()}.pdf`);
         },
       }),
-    fileFilter: (req, file, callback) => {
-    const isPdfMimetype = file.mimetype === 'application/pdf';
-    const isPdfExtension = file.originalname.toLowerCase().endsWith('.pdf');
+      fileFilter: (req, file, callback) => {
+        const isPdfMimetype = file.mimetype === 'application/pdf';
+        const isPdfExtension = file.originalname.toLowerCase().endsWith('.pdf');
 
-    if (!isPdfMimetype && !isPdfExtension) {
-        return callback(new BadRequestException('Only PDF files are allowed'), false);
-    }
-    callback(null, true);
-    },
+        if (!isPdfMimetype || !isPdfExtension) {
+          return callback(
+            new BadRequestException('Only PDF files are allowed'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
-  apply(@Body() dto: ApplyDto, @UploadedFile() file: Express.Multer.File) {
+
+
+  async apply(
+    @Body() dto: ApplyDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     if (!file) {
       throw new BadRequestException('CV file is required');
     }
+
+    await this.assertRealPdf(file.path);
+
     return this.recruitmentService.apply(dto, file.filename);
+  }
+
+  private async assertRealPdf(filePath: string): Promise<void> {
+    const buffer = Buffer.alloc(PDF_SIGNATURE.length);
+    const handle = await fsp.open(filePath, 'r');
+    try {
+      await handle.read(buffer, 0, PDF_SIGNATURE.length, 0);
+    } finally {
+      await handle.close();
+    }
+
+    if (buffer.toString('latin1') !== PDF_SIGNATURE) {
+      await fsp.unlink(filePath).catch(() => undefined);
+      throw new BadRequestException('The uploaded file is not a valid PDF');
+    }
   }
 
   @ApiBearerAuth()
@@ -66,6 +100,33 @@ export class RecruitmentController {
   @Roles(Role.HR_ADMIN)
   findAll(@Query() paginationDto: PaginationDto) {
     return this.recruitmentService.findAll(paginationDto);
+  }
+
+  @ApiBearerAuth()
+  @Get(':id/cv')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.HR_ADMIN)
+  async downloadCv(@Param('id', ParseIntPipe) id: number) {
+    const application = await this.recruitmentService.findOne(id);
+
+    if (!application.cv_file) {
+      throw new NotFoundException('This application has no CV file');
+    }
+
+    const filePath = join(
+      process.cwd(),
+      'uploads',
+      basename(application.cv_file),
+    );
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('The CV file is missing from storage');
+    }
+
+    return new StreamableFile(createReadStream(filePath), {
+      type: 'application/pdf',
+      disposition: `attachment; filename="cv-${id}.pdf"`,
+    });
   }
 
   @ApiBearerAuth()

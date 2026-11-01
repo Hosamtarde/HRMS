@@ -5,15 +5,17 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { DepartmentEntity } from '../departments/department.entity';
+import { In, Repository } from 'typeorm';
+import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
+import { OrgChartService } from '../org-chart/org-chart.service';
 import { Role } from '../../common/enums/enums';
 
 @Injectable()
 export class ReportScopeGuard implements CanActivate {
   constructor(
-    @InjectRepository(DepartmentEntity)
-    private readonly departmentsRepository: Repository<DepartmentEntity>,
+    @InjectRepository(EmployeeProfileEntity)
+    private readonly profilesRepository: Repository<EmployeeProfileEntity>,
+    private readonly orgChartService: OrgChartService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -34,22 +36,34 @@ export class ReportScopeGuard implements CanActivate {
       return true;
     }
 
-    const managed = await this.departmentsRepository.find({
-      where: { manager_id: request.user.user_id },
-      select: { department_id: true },
-    });
+    const scopeIds = await this.orgChartService.getSubtreeIds(
+      request.user.user_id,
+    );
 
-    if (managed.length === 0) {
+    const profiles = scopeIds.length
+      ? await this.profilesRepository.find({
+          where: { user_id: In(scopeIds) },
+          select: { department_id: true },
+        })
+      : [];
+
+    const allowed = [
+      ...new Set(
+        profiles
+          .map((profile) => profile.department_id)
+          .filter((id): id is number => id !== null && id !== undefined),
+      ),
+    ];
+
+    if (allowed.length === 0) {
       throw new ForbiddenException(
-        'You do not manage any department, so no report scope applies to you',
+        'No employees report to you, so no report scope applies to you',
       );
     }
 
-    const allowed = managed.map((department) => department.department_id);
-
     if (requested !== null && !allowed.includes(requested)) {
       throw new ForbiddenException(
-        'You can only view reports for departments you manage',
+        'You can only view reports for departments your team belongs to',
       );
     }
 

@@ -1,18 +1,20 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {NotFoundException, ForbiddenException, Injectable,BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In } from 'typeorm';
 import { AttendanceEntity } from './attendance.entity';
 import { AttendanceStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
-
+import { OrgChartService } from '../org-chart/org-chart.service';
+import { Role } from '../../common/enums/enums';
 
 @Injectable()
 export class AttendanceService {
   constructor(
     @InjectRepository(AttendanceEntity)
     private readonly attendanceRepository: Repository<AttendanceEntity>,
+    private readonly orgChartService: OrgChartService,
   ) {}
 
   private getToday(): string {
@@ -89,11 +91,22 @@ export class AttendanceService {
   }
 
   async findAll(
+    userId: number,
+    role: Role,
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<AttendanceEntity>> {
     const { page, limit } = paginationDto;
 
+    let where: Record<string, unknown> = { user_id: userId };
+    if (role === Role.HR_ADMIN) {
+      where = {};
+    } else if (role === Role.MANAGER) {
+      const scopeIds = await this.orgChartService.getSubtreeIds(userId);
+      where = scopeIds.length ? { user_id: In(scopeIds) } : { user_id: userId };
+    }
+
     const [data, total] = await this.attendanceRepository.findAndCount({
+      where,
       relations: { user: true },
       order: { attendance_date: 'DESC', user_id: 'ASC' },
       skip: (page - 1) * limit,
@@ -105,9 +118,21 @@ export class AttendanceService {
 
   async findByEmployee(
     userId: number,
+    requesterId: number,
+    role: Role,
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<AttendanceEntity>> {
     const { page, limit } = paginationDto;
+
+    if (role === Role.MANAGER && userId !== requesterId) {
+      const inScope = await this.orgChartService.isInSubtree(
+        requesterId,
+        userId,
+      );
+      if (!inScope) {
+        throw new ForbiddenException('This employee does not report to you');
+      }
+    }
 
     const [data, total] = await this.attendanceRepository.findAndCount({
       where: { user_id: userId },
@@ -116,12 +141,6 @@ export class AttendanceService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    if (total === 0) {
-      throw new NotFoundException(
-        `No attendance records found for user #${userId}`,
-      );
-    }
 
     return buildPaginatedResult(data, total, page, limit);
   }

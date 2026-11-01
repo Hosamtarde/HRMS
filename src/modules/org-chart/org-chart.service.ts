@@ -4,16 +4,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource } from 'typeorm';
+import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
+import { OrgListQueryDto } from './dto/org-list-query.dto';
 import {
   ManagerChangeResult,
   OrgAncestor,
   OrgCircle,
+  OrgListItem,
+  OrgListResult,
   OrgNode,
   OrgPerson,
 } from './interfaces/org-chart.interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
 interface PersonRow {
   user_id: number;
@@ -29,6 +32,14 @@ interface PersonRow {
 const PERSON_FIELDS = `p.user_id AS user_id, p.reports_to AS reports_to, u.first_name AS first_name, u.last_name AS last_name, u.role AS role, p.position AS position, d.department_name AS department_name`;
 
 const PERSON_FROM = `FROM employee_profiles p JOIN users u ON u.user_id = p.user_id LEFT JOIN departments d ON d.department_id = p.department_id`;
+
+const LIST_FROM = `FROM employee_profiles p
+JOIN users u ON u.user_id = p.user_id
+LEFT JOIN departments d ON d.department_id = p.department_id
+LEFT JOIN users m ON m.user_id = p.reports_to
+LEFT JOIN (SELECT reports_to, COUNT(*) AS total FROM employee_profiles WHERE reports_to IS NOT NULL GROUP BY reports_to) r ON r.reports_to = p.user_id`;
+
+const LIST_FIELDS = `p.user_id AS user_id, u.first_name AS first_name, u.last_name AS last_name, u.role AS role, p.position AS position, d.department_name AS department_name, p.reports_to AS reports_to, CONCAT(m.first_name, ' ', m.last_name) AS manager_name, COALESCE(r.total, 0) AS direct_reports`;
 
 const SUBTREE_SQL = `WITH RECURSIVE subtree AS (
   SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
@@ -65,6 +76,14 @@ LEFT JOIN departments d ON d.department_id = p.department_id
 WHERE ch.depth > 0
 ORDER BY ch.depth`;
 
+const SUBTREE_IDS_SQL = `WITH RECURSIVE subtree AS (
+  SELECT user_id, reports_to, 0 AS depth FROM employee_profiles WHERE user_id = ?
+  UNION ALL
+  SELECT c.user_id, c.reports_to, s.depth + 1 FROM employee_profiles c
+  JOIN subtree s ON c.reports_to = s.user_id WHERE s.depth < ?
+)
+SELECT user_id FROM subtree`;
+
 @Injectable()
 export class OrgChartService {
   private readonly maxDepth = 10;
@@ -86,6 +105,32 @@ export class OrgChartService {
     }
     const counts = await this.countDirectReports(rows.map((r) => r.user_id));
     return this.buildTree(rows, counts, root);
+  }
+
+  async getList(query: OrgListQueryDto): Promise<OrgListResult> {
+    const page = Math.max(Number(query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
+    const { where, params } = this.buildListFilters(query);
+
+    const rows = await this.dataSource.query(
+      `SELECT ${LIST_FIELDS} ${LIST_FROM} ${where} ORDER BY p.reports_to IS NULL DESC, u.first_name ASC LIMIT ${limit} OFFSET ${offset}`,
+      params,
+    );
+
+    const totals = await this.dataSource.query(
+      `SELECT COUNT(*) AS total ${LIST_FROM} ${where}`,
+      params,
+    );
+    const total = Number(totals[0].total);
+
+    return {
+      data: rows.map((row): OrgListItem => this.toListItem(row)),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
+    };
   }
 
   async getCircle(userId: number): Promise<OrgCircle> {
@@ -138,6 +183,14 @@ export class OrgChartService {
       candidateUserId,
     ]);
     return rows.length > 0;
+  }
+
+  async getSubtreeIds(rootUserId: number): Promise<number[]> {
+    const rows = await this.dataSource.query(SUBTREE_IDS_SQL, [
+      rootUserId,
+      this.maxDepth,
+    ]);
+    return rows.map((row: { user_id: number }) => Number(row.user_id));
   }
 
   async changeManager(
@@ -219,6 +272,32 @@ export class OrgChartService {
     });
   }
 
+  private buildListFilters(query: OrgListQueryDto): {
+    where: string;
+    params: unknown[];
+  } {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    if (query.q) {
+      conditions.push(
+        `(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR p.position LIKE ?)`,
+      );
+      params.push(`%${query.q}%`, `%${query.q}%`);
+    }
+    if (query.departmentId) {
+      conditions.push('p.department_id = ?');
+      params.push(query.departmentId);
+    }
+    if (query.managerId) {
+      conditions.push('p.reports_to = ?');
+      params.push(query.managerId);
+    }
+    return {
+      where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
+      params,
+    };
+  }
+
   private async findRoot(): Promise<number> {
     const rows = await this.dataSource.query(
       `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL ORDER BY user_id LIMIT 1`,
@@ -276,6 +355,29 @@ export class OrgChartService {
       throw new NotFoundException('Employee profile not found');
     }
     return root;
+  }
+
+  private toListItem(row: {
+    user_id: number;
+    first_name: string;
+    last_name: string;
+    role: string;
+    position: string | null;
+    department_name: string | null;
+    reports_to: number | null;
+    manager_name: string | null;
+    direct_reports: number;
+  }): OrgListItem {
+    return {
+      userId: Number(row.user_id),
+      fullName: `${row.first_name} ${row.last_name}`,
+      role: row.role,
+      position: row.position,
+      departmentName: row.department_name,
+      managerId: row.reports_to === null ? null : Number(row.reports_to),
+      managerName: row.manager_name,
+      directReportsCount: Number(row.direct_reports),
+    };
   }
 
   private toPerson(row: PersonRow): OrgPerson {

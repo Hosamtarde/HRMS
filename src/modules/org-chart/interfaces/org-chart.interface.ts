@@ -28,3 +28,22 @@ export interface ManagerChangeResult {
   previousManagerId: number | null;
   managerId: number | null;
 }
+
+export interface OrgListItem {
+  userId: number;
+  fullName: string;
+  role: string;
+  position: string | null;
+  departmentName: string | null;
+  managerId: number | null;
+  managerName: string | null;
+  directReportsCount: number;
+}
+
+export interface OrgListResult {
+  data: OrgListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
