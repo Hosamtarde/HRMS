@@ -23,6 +23,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ReportsModule } from './modules/reports/reports.module';
+import { OrgChartModule } from './modules/org-chart/org-chart.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     PerformanceModule,
     NotificationsModule,
     ReportsModule,
+    OrgChartModule,
   ],
   controllers: [AppController],
   providers: [
@@ -71,6 +73,5 @@ import { ReportsModule } from './modules/reports/reports.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: ActivityLogInterceptor },
   ],
-  
 })
 export class AppModule {}
