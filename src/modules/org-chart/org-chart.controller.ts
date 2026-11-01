@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/enums';
 import { OrgChartService } from './org-chart.service';
 import { ChangeManagerDto } from './dto/change-manager.dto';
+import { OrgListQueryDto } from './dto/org-list-query.dto';
 
 interface JwtUser {
   user_id: number;
@@ -37,6 +39,11 @@ export class OrgChartController {
   @Get('me')
   getMyCircle(@CurrentUser() user: JwtUser) {
     return this.orgChartService.getCircle(user.user_id);
+  }
+
+  @Get('list')
+  getList(@Query() query: OrgListQueryDto) {
+    return this.orgChartService.getList(query);
   }
 
   @Get(':userId')
