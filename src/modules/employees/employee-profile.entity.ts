@@ -10,7 +10,6 @@ import { UserEntity } from '../users/user.entity';
 import { DepartmentEntity } from '../departments/department.entity';
 import { EmploymentType } from '../../common/enums/enums';
 
-
 @Entity('employee_profiles')
 export class EmployeeProfileEntity {
   @PrimaryColumn()
@@ -27,15 +26,26 @@ export class EmployeeProfileEntity {
   @JoinColumn({ name: 'department_id' })
   department!: DepartmentEntity;
 
+  @Column({ type: 'int', nullable: true })
+  reports_to!: number | null;
+
+  @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reports_to' })
+  manager!: UserEntity | null;
+
   @Column({ length: 100 })
   position!: string;
 
   @Column({ type: 'date' })
   hire_date!: string;
 
+  @Column({
+    type: 'enum',
+    enum: EmploymentType,
+    default: EmploymentType.FULL_TIME,
+  })
+  employment_type!: EmploymentType;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   basic_salary!: number;
-
-  @Column({ type: 'enum', enum: EmploymentType, default: EmploymentType.FULL_TIME })
-  employment_type!: EmploymentType;
 }
