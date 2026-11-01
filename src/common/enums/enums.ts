@@ -95,6 +95,7 @@ export enum NotificationType {
   LOAN_INSTALMENT_PAID = 'loan_instalment_paid',
   LEAVE_BALANCE_LOW = 'leave_balance_low',
   APPLICATION_STATUS = 'application_status',
+  MANAGER_CHANGED = 'manager_changed',
 }
 
 export enum ReportFormat {
@@ -102,3 +103,4 @@ export enum ReportFormat {
   EXCEL = 'excel',
   PDF = 'pdf',
 }
+

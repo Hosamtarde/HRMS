@@ -12,6 +12,8 @@ import {
   OrgNode,
   OrgPerson,
 } from './interfaces/org-chart.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
 interface PersonRow {
   user_id: number;
@@ -68,7 +70,10 @@ export class OrgChartService {
   private readonly maxDepth = 10;
   private readonly chartDepth = 2;
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async getChart(rootUserId?: number): Promise<OrgNode> {
     const root = rootUserId ?? (await this.findRoot());
@@ -139,7 +144,7 @@ export class OrgChartService {
     userId: number,
     managerId: number | null,
   ): Promise<ManagerChangeResult> {
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const current = await manager.query(
         `SELECT user_id, reports_to FROM employee_profiles WHERE user_id = ? FOR UPDATE`,
         [userId],
@@ -182,6 +187,35 @@ export class OrgChartService {
         [managerId, userId],
       );
       return { userId, previousManagerId, managerId };
+    });
+    if (result.previousManagerId !== result.managerId) {
+      await this.emitManagerChanged(result);
+    }
+    return result;
+  }
+
+  private async emitManagerChanged(result: ManagerChangeResult): Promise<void> {
+    const ids = [result.userId];
+    if (result.managerId) {
+      ids.push(result.managerId);
+    }
+    const placeholders = ids.map(() => '?').join(', ');
+    const rows = await this.dataSource.query(
+      `SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE user_id IN (${placeholders})`,
+      ids,
+    );
+    const names = new Map<number, string>();
+    for (const row of rows) {
+      names.set(Number(row.user_id), row.full_name);
+    }
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.MANAGER_CHANGED, {
+      userId: result.userId,
+      employeeName: names.get(result.userId) ?? '',
+      managerId: result.managerId,
+      managerName: result.managerId
+        ? (names.get(result.managerId) ?? '')
+        : null,
+      previousManagerId: result.previousManagerId,
     });
   }
 
