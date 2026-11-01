@@ -3,6 +3,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { UserEntity } from './user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { Role } from '../../common/enums/enums';
 
 @Injectable()
 export class UsersService {
@@ -35,6 +37,29 @@ export class UsersService {
       throw new NotFoundException(`User #${id} not found`);
     }
     return user;
+  }
+
+    async updateRole(
+    userId: number,
+    role: Role,
+    actorId: number,
+  ): Promise<UserEntity> {
+    if (userId === actorId) {
+      throw new BadRequestException('You cannot change your own role');
+    }
+
+    const user = await this.findById(userId);
+
+    if (user.role === role) {
+      return user;
+    }
+
+    user.role = role;
+    const saved = await this.usersRepository.save(user);
+
+    this.logger.log(`User #${userId} role changed to ${role} by #${actorId}`);
+
+    return saved;
   }
 
     async updateProfile(
