@@ -8,6 +8,7 @@ import { PerformanceReviewEntity } from '../performance/reviews/performance-revi
 import { AssignedTaskEntity } from '../tasks/assigned-task.entity';
 import { RecruitmentEntity } from '../recruitment/recruitment.entity';
 import { ExportModule } from './export/export.module';
+import { OrgChartModule } from '../org-chart/org-chart.module';
 import { ReportsController } from './reports.controller';
 import { ReportFormatInterceptor } from './report-format.interceptor';
 import { ReportScopeGuard } from './report-scope.guard';
@@ -31,6 +32,7 @@ import { DashboardService } from './services/dashboard.service';
       RecruitmentEntity,
     ]),
     ExportModule,
+    OrgChartModule,
   ],
   controllers: [ReportsController],
   providers: [
