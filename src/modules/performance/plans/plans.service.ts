@@ -19,6 +19,9 @@ import { PlanStatus, ReviewStatus, Role } from '../../../common/enums/enums';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_EVENTS } from '../../../common/events/notification-events';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { buildPaginatedResult } from '../../../common/helpers/pagination.helper';
+import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class PlansService {
@@ -166,11 +169,19 @@ export class PlansService {
     return plan;
   }
 
-  async findAll(): Promise<EvaluationPlanEntity[]> {
-    return this.plansRepository.find({
+  async findAll(
+    pagination: PaginationDto,
+  ): Promise<PaginatedResult<EvaluationPlanEntity>> {
+    const { page, limit } = pagination;
+
+    const [data, total] = await this.plansRepository.findAndCount({
       relations: { department: true },
       order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async update(

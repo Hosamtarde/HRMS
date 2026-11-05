@@ -9,6 +9,7 @@ import {
   Delete,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { PlansService } from './plans.service';
@@ -19,6 +20,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Role } from '../../../common/enums/enums';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 @ApiBearerAuth()
 @Controller('performance/plans')
@@ -28,8 +30,8 @@ export class PlansController {
 
   @Get()
   @Roles(Role.HR_ADMIN, Role.MANAGER)
-  findAll() {
-    return this.plansService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.plansService.findAll(pagination);
   }
 
   @Get(':id')

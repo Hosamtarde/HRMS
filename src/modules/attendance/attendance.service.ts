@@ -8,6 +8,7 @@ import { PaginatedResult } from '../../common/interfaces/paginated-result.interf
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { OrgChartService } from '../org-chart/org-chart.service';
 import { Role } from '../../common/enums/enums';
+import { getToday } from '../../common/utils/date.util';
 
 @Injectable()
 export class AttendanceService {
@@ -18,7 +19,7 @@ export class AttendanceService {
   ) {}
 
   private getToday(): string {
-    return new Date().toISOString().split('T')[0];
+    return getToday();
   }
 
   private readonly workStartTime = '08:00:00';

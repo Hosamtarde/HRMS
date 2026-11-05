@@ -160,8 +160,7 @@ export class RequestsService {
     dto: ReviewRequestDto,
     reviewerId: number,
   ): Promise<RequestEntity> {
-
-        const ctx: { remaining: number | null; typeName: string } = {
+    const ctx: { remaining: number | null; typeName: string } = {
       remaining: null,
       typeName: '',
     };
@@ -169,7 +168,10 @@ export class RequestsService {
     const saved = await this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(RequestEntity);
 
-      const request = await repo.findOne({ where: { request_id: id } });
+      const request = await repo.findOne({
+        where: { request_id: id },
+        lock: { mode: 'pessimistic_write' },
+      });
 
       if (!request) {
         throw new NotFoundException(`Request #${id} not found`);
@@ -245,7 +247,6 @@ export class RequestsService {
     });
 
     this.eventEmitter.emit(NOTIFICATION_EVENTS.REQUEST_REVIEWED, {
-      
       requestId: saved.request_id,
       employeeId: saved.user_id,
       requestType: saved.request_type,
@@ -253,7 +254,7 @@ export class RequestsService {
       approved: dto.status === RequestStatus.APPROVED,
     });
 
-        if (ctx.remaining !== null && ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD) {
+    if (ctx.remaining !== null && ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD) {
       this.eventEmitter.emit(NOTIFICATION_EVENTS.LEAVE_BALANCE_LOW, {
         userId: saved.user_id,
         typeName: ctx.typeName,

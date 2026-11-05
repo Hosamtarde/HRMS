@@ -9,6 +9,9 @@ import { Repository } from 'typeorm';
 import { CriteriaCategoryEntity } from './criteria-category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { buildPaginatedResult } from '../../../common/helpers/pagination.helper';
+import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class CategoriesService {
@@ -29,11 +32,20 @@ export class CategoriesService {
     return category;
   }
 
-  async findAll(includeInactive = false): Promise<CriteriaCategoryEntity[]> {
-    return this.categoriesRepository.find({
+  async findAll(
+    pagination: PaginationDto,
+    includeInactive = false,
+  ): Promise<PaginatedResult<CriteriaCategoryEntity>> {
+    const { page, limit } = pagination;
+
+    const [data, total] = await this.categoriesRepository.findAndCount({
       where: includeInactive ? {} : { is_active: true },
       order: { category_name: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<CriteriaCategoryEntity> {
