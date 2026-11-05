@@ -10,6 +10,8 @@ import { PaginatedResult } from '../../common/interfaces/paginated-result.interf
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { Role } from '../../common/enums/enums';
+import { EmployeeCard } from './interfaces/employee-card.interface';
+import { getToday } from '../../common/utils/date.util';
 
 @Injectable()
 export class EmployeesService {
@@ -117,4 +119,45 @@ export class EmployeesService {
     await this.usersRepository.update(profile.user_id, { status: false });
     this.logger.log(`Employee #${profile.user_id} deactivated (soft delete)`);
   }
+
+    async findCard(userId: number): Promise<EmployeeCard> {
+    const rows = await this.employeeProfilesRepository.manager.query(      `SELECT
+         u.user_id AS userId,
+         CONCAT(u.first_name, ' ', u.last_name) AS fullName,
+         u.email AS email,
+         u.profile_image AS profileImage,
+         p.position AS position,
+         d.department_name AS department,
+         CASE WHEN m.user_id IS NULL THEN NULL
+              ELSE CONCAT(m.first_name, ' ', m.last_name) END AS managerName,
+         (SELECT COUNT(*) FROM employee_profiles r WHERE r.reports_to = u.user_id) AS directReports,
+         (SELECT a.attendance_status FROM attendance_records a
+            WHERE a.user_id = u.user_id AND a.attendance_date = ?) AS todayStatus
+       FROM users u
+       LEFT JOIN employee_profiles p ON p.user_id = u.user_id
+       LEFT JOIN departments d ON d.department_id = p.department_id
+       LEFT JOIN users m ON m.user_id = p.reports_to
+       WHERE u.user_id = ? AND u.status = true`,
+      [getToday(), userId],
+    );
+
+    if (!rows.length) {
+      throw new NotFoundException(`Employee #${userId} not found`);
+    }
+
+    const row = rows[0];
+
+    return {
+      userId: Number(row.userId),
+      fullName: row.fullName,
+      email: row.email,
+      profileImage: row.profileImage ?? null,
+      position: row.position ?? null,
+      department: row.department ?? null,
+      managerName: row.managerName ?? null,
+      directReports: Number(row.directReports),
+      todayStatus: row.todayStatus ?? null,
+    };
+  }
+
 }

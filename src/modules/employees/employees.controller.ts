@@ -23,13 +23,19 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 @ApiBearerAuth()
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.HR_ADMIN) 
+@Roles(Role.HR_ADMIN)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.employeesService.findAll(paginationDto);
+  }
+
+  @Get(':id/card')
+  @Roles(Role.HR_ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  findCard(@Param('id', ParseIntPipe) id: number) {
+    return this.employeesService.findCard(id);
   }
 
   @Get(':id')
