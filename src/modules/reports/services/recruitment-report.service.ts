@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RecruitmentEntity } from '../../recruitment/recruitment.entity';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import { ReportResult } from '../interfaces/report-result.interface';
+import { nextDay } from '../../../common/utils/date.util';
 
 interface RecruitmentRow {
   position: string;
@@ -47,9 +48,9 @@ export class RecruitmentReportService {
         "SUM(CASE WHEN r.application_status = 'rejected' THEN 1 ELSE 0 END)",
         'rejected',
       )
-      .where('DATE(r.submission_date) BETWEEN :from AND :to', {
+      .where('r.submission_date >= :from AND r.submission_date < :toExclusive', {
         from: query.from,
-        to: query.to,
+        toExclusive: nextDay(query.to),
       })
       .groupBy('r.applied_position')
       .orderBy('total', 'DESC')

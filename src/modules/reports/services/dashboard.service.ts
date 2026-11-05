@@ -10,6 +10,7 @@ import { PerformanceReviewEntity } from '../../performance/reviews/performance-r
 import { RecruitmentEntity } from '../../recruitment/recruitment.entity';
 import { ReportResult } from '../interfaces/report-result.interface';
 import { ReportScope } from '../interfaces/report-scope.interface';
+import { getToday } from '../../../common/utils/date.util';
 
 interface CountByDepartment {
   departmentId: number | null;
@@ -138,8 +139,7 @@ export class DashboardService {
   }
 
   private today(): string {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return getToday();
   }
 
   private base() {
