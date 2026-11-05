@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { LeaveTypesService } from './leave-types.service';
@@ -17,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/enums/enums';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @ApiBearerAuth()
 @Controller('leave-types')
@@ -27,10 +29,9 @@ export class LeaveTypesController {
 
   @Get()
   @Roles(Role.EMPLOYEE, Role.MANAGER, Role.HR_ADMIN)
-  findAll() {
-    return this.leaveTypesService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.leaveTypesService.findAll(pagination);
   }
-
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.leaveTypesService.findOne(id);

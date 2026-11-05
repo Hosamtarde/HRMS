@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/enums/enums';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 @ApiBearerAuth()
 @Controller('performance/categories')
@@ -28,8 +29,11 @@ export class CategoriesController {
   ) {}
 
   @Get()
-  findAll(@Query('includeInactive') includeInactive?: string) {
-    return this.categoriesService.findAll(includeInactive === 'true');
+  findAll(
+    @Query() pagination: PaginationDto,
+    @Query('includeInactive') includeInactive?: string,
+  ) {
+    return this.categoriesService.findAll(pagination, includeInactive === 'true');
   }
 
   @Get(':id')

@@ -9,6 +9,9 @@ import { Repository } from 'typeorm';
 import { LeaveTypeEntity } from './leave-type.entity';
 import { CreateLeaveTypeDto } from './dto/create-leave-type.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
+import { PaginationDto } from '../../common/dto/pagination.dto';
+import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
+import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class LeaveTypesService {
@@ -38,10 +41,18 @@ export class LeaveTypesService {
     return saved;
   }
 
-  async findAll(): Promise<LeaveTypeEntity[]> {
-    return this.leaveTypesRepository.find({
+  async findAll(
+    pagination: PaginationDto,
+  ): Promise<PaginatedResult<LeaveTypeEntity>> {
+    const { page, limit } = pagination;
+
+    const [data, total] = await this.leaveTypesRepository.findAndCount({
       order: { leave_type_id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return buildPaginatedResult(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<LeaveTypeEntity> {
