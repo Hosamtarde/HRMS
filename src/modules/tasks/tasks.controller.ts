@@ -15,11 +15,12 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateCompletionDto } from './dto/update-completion.dto';
+import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Role, TaskStatus } from '../../common/enums/enums';
+import { Role } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 
 interface JwtUser {
@@ -49,20 +50,28 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.tasksService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+    return this.tasksService.findOne(id, user.user_id, user.role);
   }
 
   @Put(':id')
   @Roles(Role.MANAGER, Role.HR_ADMIN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTaskDto) {
-    return this.tasksService.update(id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTaskDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.tasksService.update(id, dto, user.user_id, user.role);
   }
 
   @Put(':id/status')
   @Roles(Role.MANAGER, Role.HR_ADMIN)
-  updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: TaskStatus) {
-    return this.tasksService.updateStatus(id, status);
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTaskStatusDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.tasksService.updateStatus(id, dto.status, user.user_id, user.role);
   }
 
   @Put(':id/completion')
@@ -74,10 +83,9 @@ export class TasksController {
     return this.tasksService.updateCompletion(id, user.user_id, dto.completion_percentage);
   }
 
-  
   @Delete(':id')
   @Roles(Role.MANAGER, Role.HR_ADMIN)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.tasksService.remove(id);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: JwtUser) {
+    return this.tasksService.remove(id, user.user_id, user.role);
   }
 }

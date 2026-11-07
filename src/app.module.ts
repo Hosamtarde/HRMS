@@ -24,11 +24,13 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ReportsModule } from './modules/reports/reports.module';
 import { OrgChartModule } from './modules/org-chart/org-chart.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -46,7 +48,7 @@ import { OrgChartModule } from './modules/org-chart/org-chart.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 120,
       },
     ]),
     UsersModule,

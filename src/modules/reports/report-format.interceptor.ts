@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  PayloadTooLargeException,
   StreamableFile,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
@@ -12,6 +13,7 @@ import { ReportFormat } from '../../common/enums/enums';
 import { ReportResult } from './interfaces/report-result.interface';
 import { ExcelService } from './export/excel.service';
 import { PdfService } from './export/pdf.service';
+import { MAX_REPORT_ROWS } from './report.constants';
 
 const CONTENT_TYPES: Record<string, string> = {
   [ReportFormat.EXCEL]:
@@ -35,15 +37,16 @@ export class ReportFormatInterceptor implements NestInterceptor {
     const http = context.switchToHttp();
     const format = http.getRequest<{ query: { format?: string } }>().query
       .format;
-
-    if (format !== ReportFormat.EXCEL && format !== ReportFormat.PDF) {
-      return next.handle();
-    }
-
     const response = http.getResponse<Response>();
 
     return next.handle().pipe(
       switchMap(async (report: ReportResult) => {
+        this.assertWithinLimit(report);
+
+        if (format !== ReportFormat.EXCEL && format !== ReportFormat.PDF) {
+          return report;
+        }
+
         const file =
           format === ReportFormat.EXCEL
             ? await this.excelService.build(report)
@@ -60,6 +63,16 @@ export class ReportFormatInterceptor implements NestInterceptor {
 
         return new StreamableFile(file);
       }),
+    );
+  }
+
+  private assertWithinLimit(report: ReportResult): void {
+    if (!report?.rows || report.rows.length <= MAX_REPORT_ROWS) {
+      return;
+    }
+
+    throw new PayloadTooLargeException(
+      `This report returned ${report.rows.length} rows, which exceeds the limit of ${MAX_REPORT_ROWS}. Narrow the date range or filter by department.`,
     );
   }
 
