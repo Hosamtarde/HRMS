@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException,BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository,In, } from 'typeorm';
 import { LeaveBalanceEntity } from './leave-balance.entity';
 import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -17,7 +17,7 @@ import {
   PRORATE_FIRST_YEAR,
 } from './leave-balance.constants';
 
-/** الشكل الموحّد الذي تُعرض به الأرصدة في كل المسارات */
+
 export interface PresentedLeaveBalance {
   balance_id: number;
   user_id: number;
@@ -46,7 +46,6 @@ export class LeaveBalancesService {
     private readonly leaveTypesRepository: Repository<LeaveTypeEntity>,
   ) {}
 
-  /** الرصيد المتاح = المستحق + المرحّل − المستهلك */
   private computeAvailable(balance: LeaveBalanceEntity): number {
     return (
       Number(balance.total_days) +
@@ -55,7 +54,6 @@ export class LeaveBalancesService {
     );
   }
 
-  /** شكل العرض الموحّد — أرقام لا نصوص، مع الرصيد المتاح محسوباً */
   private present(balance: LeaveBalanceEntity): PresentedLeaveBalance {
     return {
       balance_id: balance.balance_id,
@@ -108,7 +106,6 @@ export class LeaveBalancesService {
     return balances.map((balance) => this.present(balance));
   }
 
-  /** الكيان الخام — للاستخدام الداخلي حيث نحتاج صفاً قابلاً للحفظ */
   async findOne(id: number): Promise<LeaveBalanceEntity> {
     const balance = await this.leaveBalancesRepository.findOne({
       where: { balance_id: id },
@@ -148,7 +145,6 @@ export class LeaveBalancesService {
     return this.present(saved);
   }
 
-  /** يستخدمه موديول الطلبات للتحقق قبل تقديم طلب إجازة */
   async getAvailableDays(
     userId: number,
     leaveTypeId: number,
@@ -165,7 +161,6 @@ export class LeaveBalancesService {
     return this.computeAvailable(balance);
   }
 
-  /** مدة الخدمة بالسنوات حتى نهاية السنة المحتسَبة */
   private yearsOfService(hireDate: string, year: number): number {
     const hire = new Date(hireDate);
     const endOfYear = new Date(Date.UTC(year, 11, 31));
@@ -173,7 +168,6 @@ export class LeaveBalancesService {
     return ms / (1000 * 60 * 60 * 24 * 365.25);
   }
 
-  /** الاستحقاق حسب الشريحة، مع التناسب لمن عُيّن خلال السنة */
   private entitlementFor(hireDate: string, year: number): number {
     const years = this.yearsOfService(hireDate, year);
 
@@ -202,11 +196,29 @@ export class LeaveBalancesService {
     ]);
 
     const activeProfiles = profiles.filter((p) => p.user?.status === true);
+    const userIds = activeProfiles.map((p) => p.user_id);
 
     let created = 0;
     let updated = 0;
     let skippedManual = 0;
     let skippedNotHired = 0;
+
+    const existingMap = new Map<string, LeaveBalanceEntity>();
+
+    if (userIds.length && leaveTypes.length) {
+      const balances = await this.leaveBalancesRepository.find({
+        where: { user_id: In(userIds), year: In([year, year - 1]) },
+      });
+
+      for (const row of balances) {
+        existingMap.set(
+          this.balanceKey(row.user_id, row.leave_type_id, row.year),
+          row,
+        );
+      }
+    }
+
+    const toSave: LeaveBalanceEntity[] = [];
 
     for (const profile of activeProfiles) {
       const hireYear = new Date(profile.hire_date).getUTCFullYear();
@@ -216,13 +228,9 @@ export class LeaveBalancesService {
       }
 
       for (const leaveType of leaveTypes) {
-        const existing = await this.leaveBalancesRepository.findOne({
-          where: {
-            user_id: profile.user_id,
-            leave_type_id: leaveType.leave_type_id,
-            year,
-          },
-        });
+        const existing = existingMap.get(
+          this.balanceKey(profile.user_id, leaveType.leave_type_id, year),
+        );
 
         if (existing?.is_manual) {
           skippedManual++;
@@ -233,21 +241,21 @@ export class LeaveBalancesService {
           ? this.entitlementFor(profile.hire_date, year)
           : Number(leaveType.default_days);
 
+        const previous = existingMap.get(
+          this.balanceKey(profile.user_id, leaveType.leave_type_id, year - 1),
+        );
+
         const carriedOver = leaveType.uses_service_tiers
-          ? await this.carryOverFrom(
-              profile.user_id,
-              leaveType.leave_type_id,
-              year - 1,
-            )
+          ? this.carryOverOf(previous)
           : 0;
 
         if (existing) {
           existing.total_days = totalDays;
           existing.carried_over = carriedOver;
-          await this.leaveBalancesRepository.save(existing);
+          toSave.push(existing);
           updated++;
         } else {
-          await this.leaveBalancesRepository.save(
+          toSave.push(
             this.leaveBalancesRepository.create({
               user_id: profile.user_id,
               leave_type_id: leaveType.leave_type_id,
@@ -263,6 +271,10 @@ export class LeaveBalancesService {
       }
     }
 
+    if (toSave.length) {
+      await this.leaveBalancesRepository.save(toSave, { chunk: 200 });
+    }
+
     this.logger.log(
       `Leave balances for ${year}: ${created} created, ${updated} updated, ` +
         `${skippedManual} manual rows left alone, ${skippedNotHired} not yet hired`,
@@ -271,16 +283,11 @@ export class LeaveBalancesService {
     return { year, created, updated, skippedManual, skippedNotHired };
   }
 
-  /** المتبقي من السنة الماضية، بحد أقصى CARRY_OVER_CAP */
-  private async carryOverFrom(
-    userId: number,
-    leaveTypeId: number,
-    previousYear: number,
-  ): Promise<number> {
-    const previous = await this.leaveBalancesRepository.findOne({
-      where: { user_id: userId, leave_type_id: leaveTypeId, year: previousYear },
-    });
+  private balanceKey(userId: number, leaveTypeId: number, year: number): string {
+    return `${userId}:${leaveTypeId}:${year}`;
+  }
 
+  private carryOverOf(previous?: LeaveBalanceEntity): number {
     if (!previous) {
       return 0;
     }
@@ -290,10 +297,7 @@ export class LeaveBalancesService {
     return Math.max(0, Math.min(remaining, CARRY_OVER_CAP));
   }
 
-    /**
-   * يخصم أياماً من الرصيد ضمن معاملة يملكها المستدعي.
-   * يأخذ قفلاً على الصف حتى لا تمرّ موافقتان متزامنتان على رصيد واحد.
-   */
+
   async consumeDays(
     manager: EntityManager,
     userId: number,
