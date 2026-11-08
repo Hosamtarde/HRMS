@@ -62,6 +62,4 @@ export class LeaveBalancesController {
     const targetYear = year ? Number(year) : new Date().getFullYear();
     return this.leaveBalancesService.calculateForYear(targetYear);
   }
-
-
 }

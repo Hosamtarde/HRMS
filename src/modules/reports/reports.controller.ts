@@ -1,4 +1,10 @@
-import { Controller, Get, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -39,12 +45,18 @@ export class ReportsController {
   }
 
   @Get('attendance')
-  attendance(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+  attendance(
+    @Query() query: ReportQueryDto,
+    @CurrentScope() scope: ReportScope,
+  ) {
     return this.attendanceReportService.build(query, scope);
   }
 
   @Get('leave-balances')
-  leaveBalances(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+  leaveBalances(
+    @Query() query: ReportQueryDto,
+    @CurrentScope() scope: ReportScope,
+  ) {
     return this.leaveReportService.build(query, scope);
   }
 
@@ -55,7 +67,10 @@ export class ReportsController {
   }
 
   @Get('performance')
-  performance(@Query() query: ReportQueryDto, @CurrentScope() scope: ReportScope) {
+  performance(
+    @Query() query: ReportQueryDto,
+    @CurrentScope() scope: ReportScope,
+  ) {
     return this.performanceReportService.build(query, scope);
   }
 

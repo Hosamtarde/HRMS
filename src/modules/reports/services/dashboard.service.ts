@@ -30,14 +30,19 @@ export class DashboardService {
   async build(scope: ReportScope): Promise<ReportResult> {
     const today = this.today();
 
-    const [employees, presentToday, pendingRequests, overdueTasks, pendingReviews] =
-      await Promise.all([
-        this.countEmployees(scope),
-        this.countPresentToday(scope, today),
-        this.countPendingRequests(scope),
-        this.countOverdueTasks(scope),
-        this.countPendingReviews(scope),
-      ]);
+    const [
+      employees,
+      presentToday,
+      pendingRequests,
+      overdueTasks,
+      pendingReviews,
+    ] = await Promise.all([
+      this.countEmployees(scope),
+      this.countPresentToday(scope, today),
+      this.countPendingRequests(scope),
+      this.countOverdueTasks(scope),
+      this.countPendingReviews(scope),
+    ]);
 
     const departments = new Map<
       string,
@@ -53,7 +58,12 @@ export class DashboardService {
 
     const put = (
       list: CountByDepartment[],
-      key: 'employees' | 'presentToday' | 'pendingRequests' | 'overdueTasks' | 'pendingReviews',
+      key:
+        | 'employees'
+        | 'presentToday'
+        | 'pendingRequests'
+        | 'overdueTasks'
+        | 'pendingReviews',
     ) => {
       for (const item of list) {
         const name = item.departmentName ?? 'بدون قسم';
@@ -90,7 +100,12 @@ export class DashboardService {
       .sort((a, b) => b.employees - a.employees);
 
     const totalOf = (
-      key: 'employees' | 'presentToday' | 'pendingRequests' | 'overdueTasks' | 'pendingReviews',
+      key:
+        | 'employees'
+        | 'presentToday'
+        | 'pendingRequests'
+        | 'overdueTasks'
+        | 'pendingReviews',
     ) => rows.reduce((sum, row) => sum + row[key], 0);
 
     const totalEmployees = totalOf('employees');
@@ -128,10 +143,30 @@ export class DashboardService {
         { key: 'department', label: 'القسم', type: 'text', width: 22 },
         { key: 'employees', label: 'الموظفون', type: 'number', width: 14 },
         { key: 'presentToday', label: 'حضور اليوم', type: 'number', width: 14 },
-        { key: 'presenceRate', label: 'نسبة الحضور', type: 'percent', width: 14 },
-        { key: 'pendingRequests', label: 'طلبات معلّقة', type: 'number', width: 16 },
-        { key: 'overdueTasks', label: 'مهام متأخرة', type: 'number', width: 14 },
-        { key: 'pendingReviews', label: 'تقييمات معلّقة', type: 'number', width: 16 },
+        {
+          key: 'presenceRate',
+          label: 'نسبة الحضور',
+          type: 'percent',
+          width: 14,
+        },
+        {
+          key: 'pendingRequests',
+          label: 'طلبات معلّقة',
+          type: 'number',
+          width: 16,
+        },
+        {
+          key: 'overdueTasks',
+          label: 'مهام متأخرة',
+          type: 'number',
+          width: 14,
+        },
+        {
+          key: 'pendingReviews',
+          label: 'تقييمات معلّقة',
+          type: 'number',
+          width: 16,
+        },
       ],
       rows,
       summary,

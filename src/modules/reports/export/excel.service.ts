@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Workbook } from 'exceljs';
-import { ReportColumnType, ReportResult } from '../interfaces/report-result.interface';
+import {
+  ReportColumnType,
+  ReportResult,
+} from '../interfaces/report-result.interface';
 
 const NUMBER_FORMATS: Record<ReportColumnType, string> = {
   money: '#,##0.00 "₪"',
@@ -45,7 +48,11 @@ export class ExcelService {
       const cell = headerRow.getCell(index + 1);
       cell.value = column.label;
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: HEADER_FILL },
+      };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       sheet.getColumn(index + 1).width = column.width ?? 18;
       sheet.getColumn(index + 1).numFmt = NUMBER_FORMATS[column.type];

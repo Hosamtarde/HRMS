@@ -14,7 +14,6 @@ export class LoanRepaymentsService {
     private readonly repaymentsRepository: Repository<LoanRepaymentEntity>,
   ) {}
 
-
   async generateSchedule(
     manager: EntityManager,
     request: RequestEntity,
@@ -63,7 +62,6 @@ export class LoanRepaymentsService {
     );
     return target.toISOString().slice(0, 10);
   }
-
 
   async consumeNextInstallment(
     manager: EntityManager,
@@ -120,16 +118,15 @@ export class LoanRepaymentsService {
       (i) => i.repayment_status === RepaymentStatus.PAID,
     );
 
-    const loanAmount = instalments.reduce((sum, i) => sum + Number(i.amount), 0);
+    const loanAmount = instalments.reduce(
+      (sum, i) => sum + Number(i.amount),
+      0,
+    );
     const paidAmount = paid.reduce((sum, i) => sum + Number(i.amount), 0);
 
     const nextDue = instalments.find(
       (i) => i.repayment_status === RepaymentStatus.PENDING,
-
-      
     );
-    
-    
 
     return {
       request_id: requestId,
@@ -150,7 +147,7 @@ export class LoanRepaymentsService {
       })),
     };
   }
-  
+
   async attachPayroll(
     manager: EntityManager,
     userId: number,

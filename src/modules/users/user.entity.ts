@@ -9,7 +9,7 @@ import { Role } from '../../common/enums/enums';
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn()
-  user_id !: number;
+  user_id!: number;
 
   @Column({ length: 100 })
   first_name!: string;

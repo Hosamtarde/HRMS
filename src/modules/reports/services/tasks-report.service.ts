@@ -24,7 +24,10 @@ export class TasksReportService {
     private readonly assignedTasksRepository: Repository<AssignedTaskEntity>,
   ) {}
 
-  async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
+  async build(
+    query: ReportQueryDto,
+    scope: ReportScope,
+  ): Promise<ReportResult> {
     const builder = this.assignedTasksRepository
       .createQueryBuilder('a')
       .innerJoin('a.task', 't')
@@ -94,8 +97,18 @@ export class TasksReportService {
         { key: 'completed', label: 'منجزة', type: 'number', width: 12 },
         { key: 'inProgress', label: 'قيد التنفيذ', type: 'number', width: 14 },
         { key: 'overdue', label: 'متأخرة', type: 'number', width: 12 },
-        { key: 'avgCompletion', label: 'متوسط الإنجاز', type: 'percent', width: 16 },
-        { key: 'completionRate', label: 'نسبة الإتمام', type: 'percent', width: 14 },
+        {
+          key: 'avgCompletion',
+          label: 'متوسط الإنجاز',
+          type: 'percent',
+          width: 16,
+        },
+        {
+          key: 'completionRate',
+          label: 'نسبة الإتمام',
+          type: 'percent',
+          width: 14,
+        },
       ],
       rows,
       summary: [

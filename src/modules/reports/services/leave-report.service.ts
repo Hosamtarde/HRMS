@@ -27,23 +27,18 @@ export class LeaveReportService {
     private readonly profilesRepository: Repository<EmployeeProfileEntity>,
   ) {}
 
-  async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
+  async build(
+    query: ReportQueryDto,
+    scope: ReportScope,
+  ): Promise<ReportResult> {
     const year = new Date(query.from).getFullYear();
 
     const builder = this.balancesRepository
       .createQueryBuilder('b')
       .innerJoin('b.user', 'u')
       .innerJoin('b.leaveType', 'lt')
-      .innerJoin(
-        EmployeeProfileEntity,
-        'p',
-        'p.user_id = b.user_id',
-      )
-      .leftJoin(
-        DepartmentEntity,
-        'd',
-        'd.department_id = p.department_id',
-      )
+      .innerJoin(EmployeeProfileEntity, 'p', 'p.user_id = b.user_id')
+      .leftJoin(DepartmentEntity, 'd', 'd.department_id = p.department_id')
       .select("CONCAT(u.first_name, ' ', u.last_name)", 'employee')
       .addSelect('d.department_name', 'department')
       .addSelect('lt.type_name', 'leaveType')
@@ -97,13 +92,21 @@ export class LeaveReportService {
         { key: 'entitled', label: 'الرصيد المستحق', type: 'number', width: 16 },
         { key: 'usedDays', label: 'المستهلك', type: 'number', width: 14 },
         { key: 'remaining', label: 'المتبقي', type: 'number', width: 14 },
-        { key: 'usageRate', label: 'نسبة الاستهلاك', type: 'percent', width: 16 },
+        {
+          key: 'usageRate',
+          label: 'نسبة الاستهلاك',
+          type: 'percent',
+          width: 16,
+        },
       ],
       rows,
       summary: [
         { label: 'السنة', value: year },
         { label: 'عدد الأرصدة', value: rows.length },
-        { label: `أرصدة متبقّيها ${LOW_LEAVE_BALANCE_THRESHOLD} أيام أو أقل`, value: runningLow  },
+        {
+          label: `أرصدة متبقّيها ${LOW_LEAVE_BALANCE_THRESHOLD} أيام أو أقل`,
+          value: runningLow,
+        },
         { label: 'موظفون بلا أرصدة محسوبة', value: missing },
       ],
     };

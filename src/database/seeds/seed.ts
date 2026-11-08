@@ -12,9 +12,15 @@ const logger = new Logger('Seed');
 
 const CRITERIA_CATEGORIES = [
   { category_name: 'جودة العمل', description: 'دقة واكتمال ما يُسلَّم' },
-  { category_name: 'الالتزام بالمواعيد', description: 'التسليم في التواريخ المتفق عليها' },
+  {
+    category_name: 'الالتزام بالمواعيد',
+    description: 'التسليم في التواريخ المتفق عليها',
+  },
   { category_name: 'التعاون', description: 'العمل مع باقي أعضاء القسم' },
-  { category_name: 'المبادرة', description: 'اقتراح التحسينات ومعالجة المشكلات دون انتظار' },
+  {
+    category_name: 'المبادرة',
+    description: 'اقتراح التحسينات ومعالجة المشكلات دون انتظار',
+  },
   { category_name: 'الانضباط', description: 'الحضور والالتزام بسياسات العمل' },
 ];
 
@@ -51,7 +57,9 @@ async function seedCriteriaCategories(
       where: { category_name: category.category_name },
     });
     if (existing) {
-      logger.warn(`Criteria category already exists: ${category.category_name}`);
+      logger.warn(
+        `Criteria category already exists: ${category.category_name}`,
+      );
       continue;
     }
     await repo.save(repo.create(category));
@@ -68,7 +76,13 @@ async function seed() {
   );
 
   await seedUser(users, 'admin@hrms.com', 'admin123', Role.HR_ADMIN, 'HR');
-  await seedUser(users, 'employee@hrms.com', 'employee123', Role.EMPLOYEE, 'Test');
+  await seedUser(
+    users,
+    'employee@hrms.com',
+    'employee123',
+    Role.EMPLOYEE,
+    'Test',
+  );
   await seedCriteriaCategories(categories);
 
   await app.close();

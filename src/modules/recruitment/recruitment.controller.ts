@@ -12,7 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
   BadRequestException,
-  NotFoundException, 
+  NotFoundException,
   StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -64,8 +64,6 @@ export class RecruitmentController {
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
-
-
   async apply(
     @Body() dto: ApplyDto,
     @UploadedFile() file: Express.Multer.File,

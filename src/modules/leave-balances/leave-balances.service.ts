@@ -1,6 +1,11 @@
-import { Injectable, Logger, NotFoundException,BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository,In, } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { LeaveBalanceEntity } from './leave-balance.entity';
 import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -16,7 +21,6 @@ import {
   CARRY_OVER_CAP,
   PRORATE_FIRST_YEAR,
 } from './leave-balance.constants';
-
 
 export interface PresentedLeaveBalance {
   balance_id: number;
@@ -283,7 +287,11 @@ export class LeaveBalancesService {
     return { year, created, updated, skippedManual, skippedNotHired };
   }
 
-  private balanceKey(userId: number, leaveTypeId: number, year: number): string {
+  private balanceKey(
+    userId: number,
+    leaveTypeId: number,
+    year: number,
+  ): string {
     return `${userId}:${leaveTypeId}:${year}`;
   }
 
@@ -296,7 +304,6 @@ export class LeaveBalancesService {
 
     return Math.max(0, Math.min(remaining, CARRY_OVER_CAP));
   }
-
 
   async consumeDays(
     manager: EntityManager,
@@ -332,7 +339,7 @@ export class LeaveBalancesService {
     balance.used_days = Number(balance.used_days) + days;
     await repo.save(balance);
 
-       this.logger.log(
+    this.logger.log(
       `Consumed ${days} days from balance #${balance.balance_id} ` +
         `(user #${userId}) — ${available - days} days remain`,
     );

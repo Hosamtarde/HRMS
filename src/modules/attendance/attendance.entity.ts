@@ -40,7 +40,11 @@ export class AttendanceEntity {
   })
   working_hours!: number;
 
-  @Column({ type: 'enum', enum: AttendanceStatus, default: AttendanceStatus.PRESENT })
+  @Column({
+    type: 'enum',
+    enum: AttendanceStatus,
+    default: AttendanceStatus.PRESENT,
+  })
   attendance_status!: AttendanceStatus;
 
   @Column({ type: 'date' })

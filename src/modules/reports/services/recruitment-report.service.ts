@@ -48,10 +48,13 @@ export class RecruitmentReportService {
         "SUM(CASE WHEN r.application_status = 'rejected' THEN 1 ELSE 0 END)",
         'rejected',
       )
-      .where('r.submission_date >= :from AND r.submission_date < :toExclusive', {
-        from: query.from,
-        toExclusive: nextDay(query.to),
-      })
+      .where(
+        'r.submission_date >= :from AND r.submission_date < :toExclusive',
+        {
+          from: query.from,
+          toExclusive: nextDay(query.to),
+        },
+      )
       .groupBy('r.applied_position')
       .orderBy('total', 'DESC')
       .getRawMany<RecruitmentRow>();
@@ -88,11 +91,21 @@ export class RecruitmentReportService {
         { key: 'position', label: 'الوظيفة', type: 'text', width: 28 },
         { key: 'total', label: 'إجمالي الطلبات', type: 'number', width: 16 },
         { key: 'pending', label: 'قيد المراجعة', type: 'number', width: 14 },
-        { key: 'shortlisted', label: 'القائمة المختصرة', type: 'number', width: 18 },
+        {
+          key: 'shortlisted',
+          label: 'القائمة المختصرة',
+          type: 'number',
+          width: 18,
+        },
         { key: 'interview', label: 'مقابلة', type: 'number', width: 12 },
         { key: 'accepted', label: 'مقبول', type: 'number', width: 12 },
         { key: 'rejected', label: 'مرفوض', type: 'number', width: 12 },
-        { key: 'acceptanceRate', label: 'نسبة القبول', type: 'percent', width: 14 },
+        {
+          key: 'acceptanceRate',
+          label: 'نسبة القبول',
+          type: 'percent',
+          width: 14,
+        },
       ],
       rows,
       summary: [
@@ -104,7 +117,10 @@ export class RecruitmentReportService {
         { label: 'مرفوضون', value: totalOf('rejected') },
         {
           label: 'نسبة القبول العامة',
-          value: total === 0 ? '—' : `${Math.round((accepted / total) * 1000) / 10}%`,
+          value:
+            total === 0
+              ? '—'
+              : `${Math.round((accepted / total) * 1000) / 10}%`,
         },
       ],
     };

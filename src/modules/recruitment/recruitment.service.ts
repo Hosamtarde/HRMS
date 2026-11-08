@@ -77,7 +77,7 @@ export class RecruitmentService {
     return saved;
   }
 
-    async remove(id: number): Promise<{ message: string }> {
+  async remove(id: number): Promise<{ message: string }> {
     const application = await this.findOne(id);
     const fileName = application.cv_file;
 
@@ -100,5 +100,4 @@ export class RecruitmentService {
 
     return { message: `Application #${id} deleted successfully` };
   }
-  
-}0
+}

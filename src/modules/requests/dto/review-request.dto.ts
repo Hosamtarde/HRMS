@@ -7,5 +7,5 @@ export class ReviewRequestDto {
 
   @IsOptional()
   @IsString()
-  review_notes?: string; 
+  review_notes?: string;
 }

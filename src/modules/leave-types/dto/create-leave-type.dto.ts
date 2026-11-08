@@ -1,5 +1,15 @@
-import { ApiProperty,ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsNotEmpty, IsString,IsBoolean,IsOptional, Length, Max, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  Length,
+  Max,
+  Min,
+} from 'class-validator';
 import { PaymentType } from '../../../common/enums/enums';
 
 export class CreateLeaveTypeDto {
@@ -19,9 +29,12 @@ export class CreateLeaveTypeDto {
   @Max(365)
   default_days!: number;
 
-  @ApiPropertyOptional({ example: true, description: 'Entitlement grows with years of service, and unused days carry over' })
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Entitlement grows with years of service, and unused days carry over',
+  })
   @IsOptional()
   @IsBoolean()
   uses_service_tiers?: boolean;
-
 }

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException,Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PayrollEntity } from './payroll.entity';
@@ -36,10 +41,9 @@ export class PayrollService {
     private readonly dataSource: DataSource,
     private readonly loanRepaymentsService: LoanRepaymentsService,
     private readonly requestsService: RequestsService,
-    private readonly attendanceService: AttendanceService, 
-    private readonly eventEmitter: EventEmitter2,   
+    private readonly attendanceService: AttendanceService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
-
 
   private async countAbsenceDays(
     userId: number,
@@ -101,7 +105,9 @@ export class PayrollService {
       const profilesRepo = manager.getRepository(EmployeeProfileEntity);
       const payrollRepo = manager.getRepository(PayrollEntity);
 
-      const profile = await profilesRepo.findOne({ where: { user_id: userId } });
+      const profile = await profilesRepo.findOne({
+        where: { user_id: userId },
+      });
 
       if (!profile) {
         throw new NotFoundException(`Employee profile #${userId} not found`);
@@ -141,9 +147,17 @@ export class PayrollService {
       );
       const absenceDeduction = absenceDays * dailyRate;
 
-      const deductions = Math.round((loanInstallment + unpaidDeduction + halfPaidDeduction + absenceDeduction) * 100, ) / 100;
+      const deductions =
+        Math.round(
+          (loanInstallment +
+            unpaidDeduction +
+            halfPaidDeduction +
+            absenceDeduction) *
+            100,
+        ) / 100;
 
-      const netSalary = Math.round((basicSalary + bonuses - deductions) * 100) / 100;
+      const netSalary =
+        Math.round((basicSalary + bonuses - deductions) * 100) / 100;
 
       const payroll = await payrollRepo.save(
         payrollRepo.create({
@@ -191,7 +205,7 @@ export class PayrollService {
 
     return result.payroll;
   }
-  
+
   async generate(
     dto: GeneratePayrollDto,
   ): Promise<PayrollEntity[] | PayrollEntity> {
@@ -244,7 +258,6 @@ export class PayrollService {
     return results;
   }
 
-
   async findAll(
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<PayrollEntity>> {
@@ -282,7 +295,7 @@ export class PayrollService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-    async findOne(id: number): Promise<PayrollEntity> {
+  async findOne(id: number): Promise<PayrollEntity> {
     const payroll = await this.payrollRepository.findOne({
       where: { payroll_id: id },
       relations: { user: true },
@@ -330,5 +343,4 @@ export class PayrollService {
 
     return { message: `Payroll record #${id} deleted successfully` };
   }
-  
 }

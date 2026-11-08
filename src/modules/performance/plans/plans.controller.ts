@@ -42,19 +42,13 @@ export class PlansController {
 
   @Post()
   @Roles(Role.HR_ADMIN)
-  create(
-    @Body() dto: CreatePlanDto,
-    @CurrentUser() user: { user_id: number },
-  ) {
+  create(@Body() dto: CreatePlanDto, @CurrentUser() user: { user_id: number }) {
     return this.plansService.create(dto, user.user_id);
   }
 
   @Put(':id')
   @Roles(Role.HR_ADMIN)
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdatePlanDto,
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePlanDto) {
     return this.plansService.update(id, dto);
   }
 

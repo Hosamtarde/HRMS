@@ -34,7 +34,6 @@ export class ReviewsService {
     private readonly reviewsRepository: Repository<PerformanceReviewEntity>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
-
   ) {}
 
   async submit(
@@ -42,8 +41,7 @@ export class ReviewsService {
     dto: SubmitReviewDto,
     reviewer: Reviewer,
   ): Promise<PerformanceReviewEntity> {
-      const result = await this.dataSource.transaction(async (manager) => {
-    
+    const result = await this.dataSource.transaction(async (manager) => {
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
         lock: { mode: 'pessimistic_write' },
@@ -51,7 +49,6 @@ export class ReviewsService {
       if (!review) {
         throw new NotFoundException(`Review #${reviewId} not found`);
       }
-
 
       await this.assertReviewerIsAllowed(
         manager,
@@ -69,7 +66,9 @@ export class ReviewsService {
         where: { plan_id: review.plan_id },
       });
       if (!plan) {
-        throw new NotFoundException(`Evaluation plan #${review.plan_id} not found`);
+        throw new NotFoundException(
+          `Evaluation plan #${review.plan_id} not found`,
+        );
       }
       this.assertSubmissionWindowIsOpen(plan);
 
@@ -82,7 +81,8 @@ export class ReviewsService {
       let percentage = 0;
       for (const { criterion, item } of matched) {
         totalScore += item.score;
-        percentage += (item.score / criterion.max_score) * Number(criterion.weight);
+        percentage +=
+          (item.score / criterion.max_score) * Number(criterion.weight);
       }
 
       await manager.delete(EvaluationScoreEntity, { review_id: reviewId });
@@ -129,11 +129,11 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
-    async reopen(
+  async reopen(
     reviewId: number,
     hrUserId: number,
   ): Promise<PerformanceReviewEntity> {
-        const result = await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
         lock: { mode: 'pessimistic_write' },
@@ -151,7 +151,9 @@ export class ReviewsService {
         where: { plan_id: review.plan_id },
       });
       if (!plan) {
-        throw new NotFoundException(`Evaluation plan #${review.plan_id} not found`);
+        throw new NotFoundException(
+          `Evaluation plan #${review.plan_id} not found`,
+        );
       }
       this.assertSubmissionWindowIsOpen(plan);
 
@@ -164,9 +166,7 @@ export class ReviewsService {
       review.submitted_at = null as unknown as Date;
       await manager.save(review);
 
-      this.logger.log(
-        `Review #${reviewId} reopened by HR user #${hrUserId}`,
-      );
+      this.logger.log(`Review #${reviewId} reopened by HR user #${hrUserId}`);
 
       return {
         reviewerId: previousReviewer,
@@ -189,7 +189,10 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
-  async findOne(id: number, viewer?: Reviewer): Promise<PerformanceReviewEntity> {
+  async findOne(
+    id: number,
+    viewer?: Reviewer,
+  ): Promise<PerformanceReviewEntity> {
     const review = await this.reviewsRepository.findOne({
       where: { review_id: id },
       relations: {
@@ -251,7 +254,10 @@ export class ReviewsService {
       }
     }
     return this.reviewsRepository.find({
-      where: { reviewed_user_id: userId, review_status: ReviewStatus.SUBMITTED },
+      where: {
+        reviewed_user_id: userId,
+        review_status: ReviewStatus.SUBMITTED,
+      },
       relations: { plan: true },
       order: { submitted_at: 'DESC' },
     });
@@ -265,9 +271,7 @@ export class ReviewsService {
 
     if (review.reviewed_user_id === viewer.user_id) {
       if (review.review_status !== ReviewStatus.SUBMITTED) {
-        throw new ForbiddenException(
-          'This review has not been submitted yet',
-        );
+        throw new ForbiddenException('This review has not been submitted yet');
       }
       return;
     }
@@ -400,12 +404,11 @@ export class ReviewsService {
     return matched;
   }
 
-    private async recipientNameOf(userId: number): Promise<string> {
+  private async recipientNameOf(userId: number): Promise<string> {
     const user = await this.dataSource.getRepository(UserEntity).findOne({
       where: { user_id: userId },
       select: { first_name: true, last_name: true },
     });
     return user ? `${user.first_name} ${user.last_name}` : 'الموظف';
   }
-
 }

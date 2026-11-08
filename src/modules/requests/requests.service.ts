@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -36,7 +42,9 @@ export class RequestsService {
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
     if (dto.request_type === RequestType.LEAVE) {
-      const leaveType = await this.leaveTypesService.findOne(dto.leave_type_id!);
+      const leaveType = await this.leaveTypesService.findOne(
+        dto.leave_type_id!,
+      );
       await this.assertSufficientBalance(userId, dto, leaveType);
     }
 
@@ -136,7 +144,11 @@ export class RequestsService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findOne(id: number, userId: number, role: Role): Promise<RequestEntity> {
+  async findOne(
+    id: number,
+    userId: number,
+    role: Role,
+  ): Promise<RequestEntity> {
     const request = await this.requestsRepository.findOne({
       where: { request_id: id },
       relations: { user: true, reviewer: true },
@@ -181,7 +193,9 @@ export class RequestsService {
         this.logger.warn(
           `Review rejected: request #${id} already ${request.request_status}`,
         );
-        throw new BadRequestException('This request has already been processed');
+        throw new BadRequestException(
+          'This request has already been processed',
+        );
       }
 
       const [reviewer] = await manager.query(
@@ -254,7 +268,10 @@ export class RequestsService {
       approved: dto.status === RequestStatus.APPROVED,
     });
 
-    if (ctx.remaining !== null && ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD) {
+    if (
+      ctx.remaining !== null &&
+      ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD
+    ) {
       this.eventEmitter.emit(NOTIFICATION_EVENTS.LEAVE_BALANCE_LOW, {
         userId: saved.user_id,
         typeName: ctx.typeName,

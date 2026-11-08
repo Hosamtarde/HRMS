@@ -27,7 +27,10 @@ export class PayrollReportService {
     private readonly payrollRepository: Repository<PayrollEntity>,
   ) {}
 
-  async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
+  async build(
+    query: ReportQueryDto,
+    scope: ReportScope,
+  ): Promise<ReportResult> {
     const builder = this.payrollRepository
       .createQueryBuilder('pr')
       .innerJoin('pr.user', 'u')
@@ -78,8 +81,10 @@ export class PayrollReportService {
     }));
 
     const sum = (
-      key: 'basicSalary' | 'bonuses' | 'deductions' | 'loanPortion' | 'netSalary',
-    ) => Math.round(rows.reduce((total, row) => total + row[key], 0) * 100) / 100;
+      key:
+        'basicSalary' | 'bonuses' | 'deductions' | 'loanPortion' | 'netSalary',
+    ) =>
+      Math.round(rows.reduce((total, row) => total + row[key], 0) * 100) / 100;
 
     const months = new Set(rows.map((row) => row.salaryMonth));
 
@@ -91,10 +96,20 @@ export class PayrollReportService {
         { key: 'employee', label: 'الموظف', type: 'text', width: 24 },
         { key: 'department', label: 'القسم', type: 'text', width: 18 },
         { key: 'salaryMonth', label: 'الشهر', type: 'text', width: 12 },
-        { key: 'basicSalary', label: 'الراتب الأساسي', type: 'money', width: 18 },
+        {
+          key: 'basicSalary',
+          label: 'الراتب الأساسي',
+          type: 'money',
+          width: 18,
+        },
         { key: 'bonuses', label: 'العلاوات', type: 'money', width: 16 },
         { key: 'deductions', label: 'الخصومات', type: 'money', width: 16 },
-        { key: 'loanPortion', label: 'منها أقساط قروض', type: 'money', width: 18 },
+        {
+          key: 'loanPortion',
+          label: 'منها أقساط قروض',
+          type: 'money',
+          width: 18,
+        },
         { key: 'netSalary', label: 'صافي الراتب', type: 'money', width: 18 },
       ],
       rows,

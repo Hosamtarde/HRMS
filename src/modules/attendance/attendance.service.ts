@@ -1,4 +1,9 @@
-import {NotFoundException, ForbiddenException, Injectable,BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  Injectable,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { AttendanceEntity } from './attendance.entity';
@@ -51,7 +56,7 @@ export class AttendanceService {
     }
 
     const now = new Date();
-    const currentTime = now.toTimeString().split(' ')[0]; 
+    const currentTime = now.toTimeString().split(' ')[0];
 
     const record = this.attendanceRepository.create({
       user_id: userId,
@@ -145,7 +150,6 @@ export class AttendanceService {
 
     return buildPaginatedResult(data, total, page, limit);
   }
-
 
   async getAttendedDates(
     userId: number,

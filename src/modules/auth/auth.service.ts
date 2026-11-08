@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -133,7 +129,7 @@ export class AuthService {
       expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') as any,
     });
 
-    const decoded = this.jwtService.decode(refresh_token) as { exp: number };
+    const decoded = this.jwtService.decode(refresh_token);
 
     await this.refreshTokensRepository.save(
       this.refreshTokensRepository.create({

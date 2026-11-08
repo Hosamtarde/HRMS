@@ -42,10 +42,7 @@ export class TasksController {
   }
 
   @Get()
-  findAll(
-    @CurrentUser() user: JwtUser,
-    @Query() paginationDto: PaginationDto,
-  ) {
+  findAll(@CurrentUser() user: JwtUser, @Query() paginationDto: PaginationDto) {
     return this.tasksService.findAll(user.user_id, user.role, paginationDto);
   }
 
@@ -71,7 +68,12 @@ export class TasksController {
     @Body() dto: UpdateTaskStatusDto,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.tasksService.updateStatus(id, dto.status, user.user_id, user.role);
+    return this.tasksService.updateStatus(
+      id,
+      dto.status,
+      user.user_id,
+      user.role,
+    );
   }
 
   @Put(':id/completion')
@@ -80,7 +82,11 @@ export class TasksController {
     @Body() dto: UpdateCompletionDto,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.tasksService.updateCompletion(id, user.user_id, dto.completion_percentage);
+    return this.tasksService.updateCompletion(
+      id,
+      user.user_id,
+      dto.completion_percentage,
+    );
   }
 
   @Delete(':id')

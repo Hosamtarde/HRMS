@@ -21,7 +21,7 @@ export class CreateRequestDto {
   @IsNotEmpty()
   @Length(3, 150)
   request_title?: string;
-  
+
   @ValidateIf((o) => o.request_type === RequestType.LEAVE)
   @IsInt()
   @Min(1)
@@ -35,7 +35,6 @@ export class CreateRequestDto {
   @IsDateString()
   end_date?: string;
 
-  
   @ValidateIf((o) => o.request_type === RequestType.LOAN)
   @IsNumber()
   @Min(1)

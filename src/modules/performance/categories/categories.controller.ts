@@ -24,16 +24,17 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 @Controller('performance/categories')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class CategoriesController {
-  constructor(
-    private readonly categoriesService: CategoriesService,
-  ) {}
+  constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
   findAll(
     @Query() pagination: PaginationDto,
     @Query('includeInactive') includeInactive?: string,
   ) {
-    return this.categoriesService.findAll(pagination, includeInactive === 'true');
+    return this.categoriesService.findAll(
+      pagination,
+      includeInactive === 'true',
+    );
   }
 
   @Get(':id')

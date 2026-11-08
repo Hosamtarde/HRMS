@@ -44,7 +44,10 @@ export class DepartmentsController {
 
   @Put(':id')
   @Roles(Role.HR_ADMIN)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateDepartmentDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateDepartmentDto,
+  ) {
     return this.departmentsService.update(id, dto);
   }
 

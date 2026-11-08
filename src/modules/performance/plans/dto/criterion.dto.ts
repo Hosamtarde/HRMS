@@ -22,7 +22,10 @@ export class CriterionDto {
   @MaxLength(255)
   criteria_text!: string;
 
-  @ApiProperty({ example: 40, description: 'Percent. All weights must total 100.' })
+  @ApiProperty({
+    example: 40,
+    description: 'Percent. All weights must total 100.',
+  })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   @Max(TOTAL_WEIGHT)

@@ -17,9 +17,7 @@ import { Role } from '../../common/enums/enums';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.HR_ADMIN)
 export class LoanRepaymentsController {
-  constructor(
-    private readonly loanRepaymentsService: LoanRepaymentsService,
-  ) {}
+  constructor(private readonly loanRepaymentsService: LoanRepaymentsService) {}
 
   @Get('loan/:id')
   findByLoan(@Param('id', ParseIntPipe) id: number) {

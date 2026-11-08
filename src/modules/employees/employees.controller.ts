@@ -49,7 +49,10 @@ export class EmployeesController {
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateEmployeeDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateEmployeeDto,
+  ) {
     return this.employeesService.update(id, dto);
   }
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { TaskEntity } from './task.entity';
@@ -26,28 +30,30 @@ export class TasksService {
   ) {}
 
   async create(assignedBy: number, dto: CreateTaskDto): Promise<TaskEntity> {
-    const savedTask = await this.dataSource.transaction<TaskEntity>(async (manager) => {
-      const task = manager.create(TaskEntity, {
-        assigned_by: assignedBy,
-        task_title: dto.task_title,
-        description: dto.description,
-        deadline: dto.deadline,
-        task_priority: dto.task_priority,
-        task_status: TaskStatus.TODO,
-      });
-      const created = await manager.save(task);
+    const savedTask = await this.dataSource.transaction<TaskEntity>(
+      async (manager) => {
+        const task = manager.create(TaskEntity, {
+          assigned_by: assignedBy,
+          task_title: dto.task_title,
+          description: dto.description,
+          deadline: dto.deadline,
+          task_priority: dto.task_priority,
+          task_status: TaskStatus.TODO,
+        });
+        const created = await manager.save(task);
 
-      const assignments = dto.assigned_user_ids.map((userId) =>
-        manager.create(AssignedTaskEntity, {
-          user_id: userId,
-          task_id: created.task_id,
-          completion_percentage: 0,
-        }),
-      );
-      await manager.save(assignments);
+        const assignments = dto.assigned_user_ids.map((userId) =>
+          manager.create(AssignedTaskEntity, {
+            user_id: userId,
+            task_id: created.task_id,
+            completion_percentage: 0,
+          }),
+        );
+        await manager.save(assignments);
 
-      return created;
-    });
+        return created;
+      },
+    );
 
     this.eventEmitter.emit(NOTIFICATION_EVENTS.TASK_ASSIGNED, {
       taskId: savedTask.task_id,
@@ -98,13 +104,14 @@ export class TasksService {
       return buildPaginatedResult(data, total, page, limit);
     }
 
-    const [assignments, total] = await this.assignedTasksRepository.findAndCount({
-      where: { user_id: userId },
-      relations: { task: true },
-      order: { task_id: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [assignments, total] =
+      await this.assignedTasksRepository.findAndCount({
+        where: { user_id: userId },
+        relations: { task: true },
+        order: { task_id: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
     const data = assignments.map((a) => a.task);
     return buildPaginatedResult(data, total, page, limit);
@@ -158,7 +165,11 @@ export class TasksService {
     return saved;
   }
 
-  async updateCompletion(taskId: number, userId: number, percentage: number): Promise<AssignedTaskEntity> {
+  async updateCompletion(
+    taskId: number,
+    userId: number,
+    percentage: number,
+  ): Promise<AssignedTaskEntity> {
     const assignment = await this.assignedTasksRepository.findOne({
       where: { task_id: taskId, user_id: userId },
     });
@@ -230,7 +241,10 @@ export class TasksService {
       return;
     }
 
-    if (role === Role.MANAGER && (await this.hasScopeOver(assigneeIds, userId))) {
+    if (
+      role === Role.MANAGER &&
+      (await this.hasScopeOver(assigneeIds, userId))
+    ) {
       return;
     }
 
@@ -247,7 +261,10 @@ export class TasksService {
     }
 
     const assigneeIds = await this.findAssigneeIds(task.task_id);
-    if (role === Role.MANAGER && (await this.hasScopeOver(assigneeIds, userId))) {
+    if (
+      role === Role.MANAGER &&
+      (await this.hasScopeOver(assigneeIds, userId))
+    ) {
       return;
     }
 
