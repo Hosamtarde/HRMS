@@ -49,7 +49,7 @@ export class NotificationsGateway
         { secret: this.config.get<string>('JWT_SECRET')! },
       );
 
-      client.data.userId = payload.sub;
+      (client.data as { userId?: number }).userId = payload.sub;
       await client.join(this.roomOf(payload.sub));
 
       this.logger.log(
@@ -62,7 +62,7 @@ export class NotificationsGateway
   }
 
   handleDisconnect(client: Socket): void {
-    const userId = client.data?.userId as number | undefined;
+    const userId = (client.data as { userId?: number } | undefined)?.userId;
 
     if (userId) {
       this.logger.log(

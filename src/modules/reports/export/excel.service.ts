@@ -4,6 +4,7 @@ import {
   ReportColumnType,
   ReportResult,
 } from '../interfaces/report-result.interface';
+import { toText } from './format.helper';
 
 const NUMBER_FORMATS: Record<ReportColumnType, string> = {
   money: '#,##0.00 "₪"',
@@ -70,7 +71,7 @@ export class ExcelService {
           value === null || value === undefined
             ? ''
             : column.type === 'text' || column.type === 'date'
-              ? String(value)
+              ? toText(value)
               : Number(value);
 
         cell.alignment = {

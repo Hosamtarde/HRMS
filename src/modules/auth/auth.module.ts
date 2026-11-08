@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -19,8 +20,12 @@ import { TokenCleanupService } from './token-cleanup.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET')!,
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN') as any },
+        secret: config.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: config.getOrThrow<string>(
+            'JWT_EXPIRES_IN',
+          ) as JwtSignOptions['expiresIn'],
+        },
       }),
     }),
   ],

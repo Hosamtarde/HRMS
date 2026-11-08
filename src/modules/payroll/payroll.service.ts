@@ -10,7 +10,6 @@ import { PayrollEntity } from './payroll.entity';
 import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
-import { RequestType, RequestStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';

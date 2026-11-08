@@ -8,9 +8,13 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { ActivityLogsService } from '../../modules/activity-logs/activity-logs.service';
 import { ActivityAction } from '../enums/enums';
+import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 
 @Injectable()
-export class ActivityLogInterceptor implements NestInterceptor {
+export class ActivityLogInterceptor implements NestInterceptor<
+  unknown,
+  unknown
+> {
   constructor(private readonly activityLogsService: ActivityLogsService) {}
 
   private readonly actionByMethod: Record<string, ActivityAction> = {
@@ -22,9 +26,12 @@ export class ActivityLogInterceptor implements NestInterceptor {
 
   private readonly excludedEntities = ['auth'];
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
-    const method: string = request.method;
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler<unknown>,
+  ): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const method = request.method;
 
     const action = this.actionByMethod[method];
 
@@ -32,14 +39,15 @@ export class ActivityLogInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const path: string = request.route?.path ?? request.url;
+    const route = request.route as { path?: string } | undefined;
+    const path = route?.path ?? request.url;
     const entity = this.extractEntity(path);
 
     if (this.excludedEntities.includes(entity)) {
       return next.handle();
     }
 
-    const userId: number | undefined = request.user?.user_id;
+    const userId = request.user?.user_id;
     const entityId = this.extractEntityId(request);
 
     return next.handle().pipe(
@@ -61,7 +69,7 @@ export class ActivityLogInterceptor implements NestInterceptor {
     return firstSegment ?? 'unknown';
   }
 
-  private extractEntityId(request: any): number | undefined {
+  private extractEntityId(request: AuthenticatedRequest): number | undefined {
     const rawId = request.params?.id;
     if (!rawId) return undefined;
     const parsed = Number(rawId);

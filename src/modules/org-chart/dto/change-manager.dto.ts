@@ -7,7 +7,7 @@ export class ChangeManagerDto {
     nullable: true,
     description: 'User id of the new manager, or null to detach',
   })
-  @ValidateIf((o) => o.managerId !== null)
+  @ValidateIf((o: ChangeManagerDto) => o.managerId !== null)
   @IsInt()
   @IsPositive()
   managerId!: number | null;

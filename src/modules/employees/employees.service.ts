@@ -1,3 +1,15 @@
+interface EmployeeCardRow {
+  userId: number;
+  fullName: string;
+  email: string;
+  profileImage: string | null;
+  position: string | null;
+  department: string | null;
+  managerName: string | null;
+  directReports: number | string;
+  todayStatus: string | null;
+}
+
 import {
   Injectable,
   NotFoundException,
@@ -131,7 +143,9 @@ export class EmployeesService {
   }
 
   async findCard(userId: number): Promise<EmployeeCard> {
-    const rows = await this.employeeProfilesRepository.manager.query(
+    const rows = await this.employeeProfilesRepository.manager.query<
+      EmployeeCardRow[]
+    >(
       `SELECT
          u.user_id AS userId,
          CONCAT(u.first_name, ' ', u.last_name) AS fullName,

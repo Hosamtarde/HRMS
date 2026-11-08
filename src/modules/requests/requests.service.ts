@@ -198,7 +198,7 @@ export class RequestsService {
         );
       }
 
-      const [reviewer] = await manager.query(
+      const [reviewer] = await manager.query<{ role: Role }[]>(
         `SELECT role FROM users WHERE user_id = ?`,
         [reviewerId],
       );

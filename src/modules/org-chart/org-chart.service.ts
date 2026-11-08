@@ -18,7 +18,7 @@ import {
   OrgPerson,
 } from './interfaces/org-chart.interface';
 
-interface PersonRow {
+interface ListRow {
   user_id: number;
   reports_to: number | null;
   first_name: string;
@@ -27,6 +27,18 @@ interface PersonRow {
   position: string | null;
   department_name: string | null;
   depth?: number;
+}
+
+interface ListItemRow {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  role: string;
+  position: string | null;
+  department_name: string | null;
+  reports_to: number | null;
+  manager_name: string | null;
+  direct_reports: number | string;
 }
 
 const PERSON_FIELDS = `p.user_id AS user_id, p.reports_to AS reports_to, u.first_name AS first_name, u.last_name AS last_name, u.role AS role, p.position AS position, d.department_name AS department_name`;
@@ -96,7 +108,7 @@ export class OrgChartService {
 
   async getChart(rootUserId?: number): Promise<OrgNode> {
     const root = rootUserId ?? (await this.findRoot());
-    const rows: PersonRow[] = await this.dataSource.query(SUBTREE_SQL, [
+    const rows = await this.dataSource.query<ListRow[]>(SUBTREE_SQL, [
       root,
       this.chartDepth,
     ]);
@@ -113,12 +125,12 @@ export class OrgChartService {
     const offset = (page - 1) * limit;
     const { where, params } = this.buildListFilters(query);
 
-    const rows = await this.dataSource.query(
+    const rows = await this.dataSource.query<ListItemRow[]>(
       `SELECT ${LIST_FIELDS} ${LIST_FROM} ${where} ORDER BY p.reports_to IS NULL DESC, u.first_name ASC LIMIT ${limit} OFFSET ${offset}`,
       params,
     );
 
-    const totals = await this.dataSource.query(
+    const totals = await this.dataSource.query<{ total: string }[]>(
       `SELECT COUNT(*) AS total ${LIST_FROM} ${where}`,
       params,
     );
@@ -134,7 +146,7 @@ export class OrgChartService {
   }
 
   async getCircle(userId: number): Promise<OrgCircle> {
-    const rows: PersonRow[] = await this.dataSource.query(
+    const rows = await this.dataSource.query<ListRow[]>(
       `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.user_id = ?`,
       [userId],
     );
@@ -142,17 +154,17 @@ export class OrgChartService {
       throw new NotFoundException('Employee profile not found');
     }
     const row = rows[0];
-    const managerRows: PersonRow[] = row.reports_to
-      ? await this.dataSource.query(
+    const managerRows: ListRow[] = row.reports_to
+      ? await this.dataSource.query<ListRow[]>(
           `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.user_id = ?`,
           [row.reports_to],
         )
       : [];
-    const peerRows: PersonRow[] = await this.dataSource.query(
+    const peerRows = await this.dataSource.query<ListRow[]>(
       `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.reports_to <=> ? AND p.user_id <> ? ORDER BY u.first_name`,
       [row.reports_to, userId],
     );
-    const reportRows: PersonRow[] = await this.dataSource.query(
+    const reportRows = await this.dataSource.query<ListRow[]>(
       `SELECT ${PERSON_FIELDS} ${PERSON_FROM} WHERE p.reports_to = ? ORDER BY u.first_name`,
       [userId],
     );
@@ -166,7 +178,7 @@ export class OrgChartService {
   }
 
   async getAncestors(userId: number): Promise<OrgAncestor[]> {
-    const rows: PersonRow[] = await this.dataSource.query(ANCESTORS_SQL, [
+    const rows = await this.dataSource.query<ListRow[]>(ANCESTORS_SQL, [
       userId,
       this.maxDepth,
     ]);
@@ -177,20 +189,19 @@ export class OrgChartService {
     rootUserId: number,
     candidateUserId: number,
   ): Promise<boolean> {
-    const rows = await this.dataSource.query(SUBTREE_CONTAINS_SQL, [
-      rootUserId,
-      this.maxDepth,
-      candidateUserId,
-    ]);
+    const rows = await this.dataSource.query<{ user_id: number }[]>(
+      SUBTREE_CONTAINS_SQL,
+      [rootUserId, this.maxDepth, candidateUserId],
+    );
     return rows.length > 0;
   }
 
   async getSubtreeIds(rootUserId: number): Promise<number[]> {
-    const rows = await this.dataSource.query(SUBTREE_IDS_SQL, [
-      rootUserId,
-      this.maxDepth,
-    ]);
-    return rows.map((row: { user_id: number }) => Number(row.user_id));
+    const rows = await this.dataSource.query<{ user_id: number }[]>(
+      SUBTREE_IDS_SQL,
+      [rootUserId, this.maxDepth],
+    );
+    return rows.map((row) => Number(row.user_id));
   }
 
   async changeManager(
@@ -198,7 +209,9 @@ export class OrgChartService {
     managerId: number | null,
   ): Promise<ManagerChangeResult> {
     const result = await this.dataSource.transaction(async (manager) => {
-      const current = await manager.query(
+      const current = await manager.query<
+        { user_id: number; reports_to: number | null }[]
+      >(
         `SELECT user_id, reports_to FROM employee_profiles WHERE user_id = ? FOR UPDATE`,
         [userId],
       );
@@ -207,7 +220,7 @@ export class OrgChartService {
       }
       const previousManagerId: number | null = current[0].reports_to;
       if (managerId !== null) {
-        const target = await manager.query(
+        const target = await manager.query<{ user_id: number }[]>(
           `SELECT user_id FROM employee_profiles WHERE user_id = ?`,
           [managerId],
         );
@@ -216,18 +229,17 @@ export class OrgChartService {
             'The new manager has no employee profile',
           );
         }
-        const cycle = await manager.query(SUBTREE_CONTAINS_SQL, [
-          userId,
-          this.maxDepth,
-          managerId,
-        ]);
+        const cycle = await manager.query<{ user_id: number }[]>(
+          SUBTREE_CONTAINS_SQL,
+          [userId, this.maxDepth, managerId],
+        );
         if (cycle.length) {
           throw new BadRequestException(
             'This change would create a cycle in the hierarchy',
           );
         }
       } else {
-        const otherRoots = await manager.query(
+        const otherRoots = await manager.query<{ user_id: number }[]>(
           `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL AND user_id <> ? LIMIT 1`,
           [userId],
         );
@@ -253,7 +265,9 @@ export class OrgChartService {
       ids.push(result.managerId);
     }
     const placeholders = ids.map(() => '?').join(', ');
-    const rows = await this.dataSource.query(
+    const rows = await this.dataSource.query<
+      { user_id: number; full_name: string }[]
+    >(
       `SELECT user_id, CONCAT(first_name, ' ', last_name) AS full_name FROM users WHERE user_id IN (${placeholders})`,
       ids,
     );
@@ -299,7 +313,7 @@ export class OrgChartService {
   }
 
   private async findRoot(): Promise<number> {
-    const rows = await this.dataSource.query(
+    const rows = await this.dataSource.query<{ user_id: number }[]>(
       `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL ORDER BY user_id LIMIT 1`,
     );
     if (!rows.length) {
@@ -316,7 +330,9 @@ export class OrgChartService {
       return counts;
     }
     const placeholders = userIds.map(() => '?').join(', ');
-    const rows = await this.dataSource.query(
+    const rows = await this.dataSource.query<
+      { manager_id: number; total: string }[]
+    >(
       `SELECT reports_to AS manager_id, COUNT(*) AS total FROM employee_profiles WHERE reports_to IN (${placeholders}) GROUP BY reports_to`,
       userIds,
     );
@@ -327,7 +343,7 @@ export class OrgChartService {
   }
 
   private buildTree(
-    rows: PersonRow[],
+    rows: ListRow[],
     counts: Map<number, number>,
     rootUserId: number,
   ): OrgNode {
@@ -357,17 +373,7 @@ export class OrgChartService {
     return root;
   }
 
-  private toListItem(row: {
-    user_id: number;
-    first_name: string;
-    last_name: string;
-    role: string;
-    position: string | null;
-    department_name: string | null;
-    reports_to: number | null;
-    manager_name: string | null;
-    direct_reports: number;
-  }): OrgListItem {
+  private toListItem(row: ListItemRow): OrgListItem {
     return {
       userId: Number(row.user_id),
       fullName: `${row.first_name} ${row.last_name}`,
@@ -380,7 +386,7 @@ export class OrgChartService {
     };
   }
 
-  private toPerson(row: PersonRow): OrgPerson {
+  private toPerson(row: ListRow): OrgPerson {
     return {
       userId: Number(row.user_id),
       fullName: `${row.first_name} ${row.last_name}`,
