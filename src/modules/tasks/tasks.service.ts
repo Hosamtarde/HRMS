@@ -16,6 +16,7 @@ import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 import { OrgChartService } from '../org-chart/org-chart.service';
+import { canManageTask, canViewTask } from './task-access.helper';
 
 @Injectable()
 export class TasksService {
@@ -237,13 +238,19 @@ export class TasksService {
     }
 
     const assigneeIds = await this.findAssigneeIds(task.task_id);
-    if (assigneeIds.includes(userId)) {
-      return;
-    }
+    const scopeIds =
+      role === Role.MANAGER && !assigneeIds.includes(userId)
+        ? await this.orgChartService.getSubtreeIds(userId)
+        : [];
 
     if (
-      role === Role.MANAGER &&
-      (await this.hasScopeOver(assigneeIds, userId))
+      canViewTask({
+        role,
+        actorId: userId,
+        assignedById: task.assigned_by,
+        assigneeIds,
+        scopeIds,
+      })
     ) {
       return;
     }
@@ -261,9 +268,19 @@ export class TasksService {
     }
 
     const assigneeIds = await this.findAssigneeIds(task.task_id);
+    const scopeIds =
+      role === Role.MANAGER
+        ? await this.orgChartService.getSubtreeIds(userId)
+        : [];
+
     if (
-      role === Role.MANAGER &&
-      (await this.hasScopeOver(assigneeIds, userId))
+      canManageTask({
+        role,
+        actorId: userId,
+        assignedById: task.assigned_by,
+        assigneeIds,
+        scopeIds,
+      })
     ) {
       return;
     }
@@ -271,16 +288,5 @@ export class TasksService {
     throw new ForbiddenException(
       'This task belongs to employees outside your scope',
     );
-  }
-
-  private async hasScopeOver(
-    assigneeIds: number[],
-    managerId: number,
-  ): Promise<boolean> {
-    if (!assigneeIds.length) {
-      return false;
-    }
-    const scopeIds = await this.orgChartService.getSubtreeIds(managerId);
-    return assigneeIds.some((id) => scopeIds.includes(id));
   }
 }
