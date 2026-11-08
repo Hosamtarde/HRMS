@@ -1,5 +1,8 @@
 ﻿import { ReportColumnType } from '../interfaces/report-result.interface';
 
+const EM_DASH = '\u2014';
+const SHEKEL = '\u20AA';
+
 export function toText(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -15,7 +18,7 @@ export function toText(value: unknown): string {
 
 export function formatCell(value: unknown, type: ReportColumnType): string {
   if (value === null || value === undefined || value === '') {
-    return 'â€”';
+    return EM_DASH;
   }
 
   switch (type) {
@@ -23,7 +26,7 @@ export function formatCell(value: unknown, type: ReportColumnType): string {
       return `${Number(value).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      })} â‚ھ`;
+      })} ${SHEKEL}`;
     case 'percent':
       return `${Number(value).toFixed(1)}%`;
     case 'number':
