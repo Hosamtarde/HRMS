@@ -3,10 +3,9 @@ import {
   HALF_PAID_DEDUCTION_RATE,
   WEEKEND_DAYS,
 } from './payroll.constants';
+import { roundMoney } from '../../common/utils/money.util';
 
-export function roundMoney(value: number): number {
-  return Math.round(value * 100) / 100;
-}
+export { roundMoney };
 
 export function dailyRateOf(basicSalary: number | string): number {
   return Number(basicSalary) / DAYS_PER_SALARY_MONTH;
