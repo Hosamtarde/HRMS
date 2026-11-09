@@ -18,7 +18,7 @@ import { AttendanceModule } from '../attendance/attendance.module';
     ]),
     LoanRepaymentsModule,
     RequestsModule,
-    AttendanceModule
+    AttendanceModule,
   ],
   controllers: [PayrollController],
   providers: [PayrollService],

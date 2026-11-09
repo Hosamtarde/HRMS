@@ -17,7 +17,6 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '../../common/enums/enums';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { QueryLeaveBalancesDto } from './dto/query-leave-balances.dto';
 
 @ApiBearerAuth()
@@ -62,6 +61,4 @@ export class LeaveBalancesController {
     const targetYear = year ? Number(year) : new Date().getFullYear();
     return this.leaveBalancesService.calculateForYear(targetYear);
   }
-
-
 }

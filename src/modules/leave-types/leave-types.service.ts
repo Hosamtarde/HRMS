@@ -28,7 +28,9 @@ export class LeaveTypesService {
     });
 
     if (existing) {
-      throw new ConflictException(`Leave type "${dto.type_name}" already exists`);
+      throw new ConflictException(
+        `Leave type "${dto.type_name}" already exists`,
+      );
     }
 
     const leaveType = this.leaveTypesRepository.create(dto);
@@ -75,7 +77,9 @@ export class LeaveTypesService {
         where: { type_name: dto.type_name },
       });
       if (existing) {
-        throw new ConflictException(`Leave type "${dto.type_name}" already exists`);
+        throw new ConflictException(
+          `Leave type "${dto.type_name}" already exists`,
+        );
       }
     }
 

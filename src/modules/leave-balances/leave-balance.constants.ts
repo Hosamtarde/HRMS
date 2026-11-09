@@ -1,4 +1,3 @@
-
 export const SERVICE_TIERS = [
   { minYears: 0, maxYears: 1, days: 14 },
   { minYears: 1, maxYears: 5, days: 21 },

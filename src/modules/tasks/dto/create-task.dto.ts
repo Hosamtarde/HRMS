@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, MaxLength, IsDateString, IsEnum, IsArray, IsInt, ArrayMinSize } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsDateString,
+  IsEnum,
+  IsArray,
+  IsInt,
+  ArrayMinSize,
+} from 'class-validator';
 import { TaskPriority } from '../../../common/enums/enums';
 
 export class CreateTaskDto {

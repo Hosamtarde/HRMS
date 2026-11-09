@@ -14,7 +14,6 @@ import {
 import { EmploymentType } from '../../../common/enums/enums';
 
 export class CreateEmployeeDto {
-    
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)

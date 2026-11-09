@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationEntity } from './notification.entity';
@@ -67,7 +72,6 @@ export class NotificationsService {
     }
   }
 
-
   async findMine(
     userId: number,
     query: QueryNotificationsDto,
@@ -126,7 +130,10 @@ export class NotificationsService {
     return { deleted: result.affected ?? 0 };
   }
 
-  private async findOwned(id: number, userId: number): Promise<NotificationEntity> {
+  private async findOwned(
+    id: number,
+    userId: number,
+  ): Promise<NotificationEntity> {
     const notification = await this.notificationsRepository.findOne({
       where: { notification_id: id },
     });

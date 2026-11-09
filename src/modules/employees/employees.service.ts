@@ -1,4 +1,21 @@
-import { Injectable, NotFoundException, ConflictException,Logger  } from '@nestjs/common';
+interface EmployeeCardRow {
+  userId: number;
+  fullName: string;
+  email: string;
+  profileImage: string | null;
+  position: string | null;
+  department: string | null;
+  managerName: string | null;
+  directReports: number | string;
+  todayStatus: string | null;
+}
+
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -15,14 +32,14 @@ import { getToday } from '../../common/utils/date.util';
 
 @Injectable()
 export class EmployeesService {
-    private readonly logger = new Logger(EmployeesService.name);
+  private readonly logger = new Logger(EmployeesService.name);
 
   constructor(
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
     @InjectRepository(EmployeeProfileEntity)
     private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
-    private readonly dataSource: DataSource, 
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeProfileEntity> {
@@ -30,7 +47,9 @@ export class EmployeesService {
       where: { email: dto.email },
     });
     if (existing) {
-      this.logger.warn(`Employee creation rejected: email already exists — ${dto.email}`);
+      this.logger.warn(
+        `Employee creation rejected: email already exists — ${dto.email}`,
+      );
       throw new ConflictException('A user with this email already exists');
     }
 
@@ -92,7 +111,10 @@ export class EmployeesService {
     return profile;
   }
 
-  async update(userId: number, dto: UpdateEmployeeDto): Promise<EmployeeProfileEntity> {
+  async update(
+    userId: number,
+    dto: UpdateEmployeeDto,
+  ): Promise<EmployeeProfileEntity> {
     const profile = await this.findOne(userId);
 
     if (dto.first_name || dto.last_name || dto.phone_number) {
@@ -120,8 +142,11 @@ export class EmployeesService {
     this.logger.log(`Employee #${profile.user_id} deactivated (soft delete)`);
   }
 
-    async findCard(userId: number): Promise<EmployeeCard> {
-    const rows = await this.employeeProfilesRepository.manager.query(      `SELECT
+  async findCard(userId: number): Promise<EmployeeCard> {
+    const rows = await this.employeeProfilesRepository.manager.query<
+      EmployeeCardRow[]
+    >(
+      `SELECT
          u.user_id AS userId,
          CONCAT(u.first_name, ' ', u.last_name) AS fullName,
          u.email AS email,
@@ -159,5 +184,4 @@ export class EmployeesService {
       todayStatus: row.todayStatus ?? null,
     };
   }
-
 }

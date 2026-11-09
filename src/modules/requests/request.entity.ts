@@ -41,13 +41,11 @@ export class RequestEntity {
   @Column({ type: 'date', nullable: true })
   end_date!: string;
 
-  
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   loan_amount!: number;
 
   @Column({ nullable: true })
-  repayment_period!: number; 
-
+  repayment_period!: number;
 
   @Column({ type: 'text' })
   reason!: string;

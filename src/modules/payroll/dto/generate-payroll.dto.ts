@@ -1,4 +1,10 @@
-import { IsDateString, IsOptional, IsInt, IsNumber, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsOptional,
+  IsInt,
+  IsNumber,
+  Min,
+} from 'class-validator';
 
 export class GeneratePayrollDto {
   @IsDateString()
@@ -12,6 +18,4 @@ export class GeneratePayrollDto {
   @IsNumber()
   @Min(0)
   bonuses?: number;
-
- 
 }

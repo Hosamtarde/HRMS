@@ -33,7 +33,7 @@ export class DepartmentsService {
   async findOne(id: number): Promise<DepartmentEntity> {
     const department = await this.departmentsRepository.findOne({
       where: { department_id: id },
-      relations: { manager: true }
+      relations: { manager: true },
     });
     if (!department) {
       throw new NotFoundException(`Department #${id} not found`);
@@ -46,8 +46,10 @@ export class DepartmentsService {
     return this.departmentsRepository.save(department);
   }
 
-   async update(id: number, dto: UpdateDepartmentDto): Promise<DepartmentEntity> {
-
+  async update(
+    id: number,
+    dto: UpdateDepartmentDto,
+  ): Promise<DepartmentEntity> {
     const department = await this.departmentsRepository.findOne({
       where: { department_id: id },
     });

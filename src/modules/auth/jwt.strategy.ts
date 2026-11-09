@@ -3,11 +3,13 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
+import { Role } from '../../common/enums/enums';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 
 interface CachedUser {
   user_id: number;
   email: string;
-  role: string;
+  role: Role;
   expiresAt: number;
 }
 
@@ -24,11 +26,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_SECRET')!,
+      secretOrKey: config.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
-  async validate(payload: { sub: number; email: string; role: string }) {
+  async validate(payload: {
+    sub: number;
+    email: string;
+    role: Role;
+  }): Promise<AuthenticatedUser> {
     const now = Date.now();
     const cached = this.cache.get(payload.sub);
 

@@ -19,6 +19,15 @@ import { DepartmentEntity } from '../../departments/department.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_EVENTS } from '../../../common/events/notification-events';
 import { UserEntity } from '../../users/user.entity';
+import { getToday } from '../../../common/utils/date.util';
+import {
+  reviewerDenialReason,
+  reviewVisibilityDenial,
+  scoreTotals,
+  ScoreValidation,
+  submissionWindowDenial,
+  validateScores,
+} from './review-rules.helper';
 
 interface Reviewer {
   user_id: number;
@@ -34,7 +43,6 @@ export class ReviewsService {
     private readonly reviewsRepository: Repository<PerformanceReviewEntity>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
-
   ) {}
 
   async submit(
@@ -42,8 +50,7 @@ export class ReviewsService {
     dto: SubmitReviewDto,
     reviewer: Reviewer,
   ): Promise<PerformanceReviewEntity> {
-      const result = await this.dataSource.transaction(async (manager) => {
-    
+    const result = await this.dataSource.transaction(async (manager) => {
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
         lock: { mode: 'pessimistic_write' },
@@ -51,7 +58,6 @@ export class ReviewsService {
       if (!review) {
         throw new NotFoundException(`Review #${reviewId} not found`);
       }
-
 
       await this.assertReviewerIsAllowed(
         manager,
@@ -69,25 +75,27 @@ export class ReviewsService {
         where: { plan_id: review.plan_id },
       });
       if (!plan) {
-        throw new NotFoundException(`Evaluation plan #${review.plan_id} not found`);
+        throw new NotFoundException(
+          `Evaluation plan #${review.plan_id} not found`,
+        );
       }
       this.assertSubmissionWindowIsOpen(plan);
 
       const criteria = await manager.find(PlanCriterionEntity, {
         where: { plan_id: review.plan_id },
       });
-      const matched = this.matchScoresToCriteria(criteria, dto.scores);
 
-      let totalScore = 0;
-      let percentage = 0;
-      for (const { criterion, item } of matched) {
-        totalScore += item.score;
-        percentage += (item.score / criterion.max_score) * Number(criterion.weight);
+      const validation = validateScores(criteria, dto.scores);
+
+      if (!validation.ok) {
+        throw new BadRequestException(this.scoreValidationMessage(validation));
       }
+
+      const { totalScore, percentage } = scoreTotals(validation.matched);
 
       await manager.delete(EvaluationScoreEntity, { review_id: reviewId });
       await manager.save(
-        matched.map(({ item }) =>
+        validation.matched.map(({ item }) =>
           manager.create(EvaluationScoreEntity, {
             review_id: reviewId,
             criteria_id: item.criteria_id,
@@ -99,8 +107,8 @@ export class ReviewsService {
 
       review.reviewed_by = reviewer.user_id;
       review.review_status = ReviewStatus.SUBMITTED;
-      review.total_score = Number(totalScore.toFixed(2));
-      review.final_percentage = Number(percentage.toFixed(2));
+      review.total_score = totalScore;
+      review.final_percentage = percentage;
       review.submitted_at = new Date();
       if (dto.reviewer_comment !== undefined) {
         review.reviewer_comment = dto.reviewer_comment;
@@ -109,7 +117,7 @@ export class ReviewsService {
 
       this.logger.log(
         `Review #${reviewId} submitted by user #${reviewer.user_id}: ` +
-          `${totalScore} raw, ${review.final_percentage}%`,
+          `${totalScore} raw, ${percentage}%`,
       );
 
       return {
@@ -129,11 +137,11 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
-    async reopen(
+  async reopen(
     reviewId: number,
     hrUserId: number,
   ): Promise<PerformanceReviewEntity> {
-        const result = await this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const review = await manager.findOne(PerformanceReviewEntity, {
         where: { review_id: reviewId },
         lock: { mode: 'pessimistic_write' },
@@ -151,7 +159,9 @@ export class ReviewsService {
         where: { plan_id: review.plan_id },
       });
       if (!plan) {
-        throw new NotFoundException(`Evaluation plan #${review.plan_id} not found`);
+        throw new NotFoundException(
+          `Evaluation plan #${review.plan_id} not found`,
+        );
       }
       this.assertSubmissionWindowIsOpen(plan);
 
@@ -164,9 +174,7 @@ export class ReviewsService {
       review.submitted_at = null as unknown as Date;
       await manager.save(review);
 
-      this.logger.log(
-        `Review #${reviewId} reopened by HR user #${hrUserId}`,
-      );
+      this.logger.log(`Review #${reviewId} reopened by HR user #${hrUserId}`);
 
       return {
         reviewerId: previousReviewer,
@@ -189,7 +197,10 @@ export class ReviewsService {
     return this.findOne(reviewId);
   }
 
-  async findOne(id: number, viewer?: Reviewer): Promise<PerformanceReviewEntity> {
+  async findOne(
+    id: number,
+    viewer?: Reviewer,
+  ): Promise<PerformanceReviewEntity> {
     const review = await this.reviewsRepository.findOne({
       where: { review_id: id },
       relations: {
@@ -251,7 +262,10 @@ export class ReviewsService {
       }
     }
     return this.reviewsRepository.find({
-      where: { reviewed_user_id: userId, review_status: ReviewStatus.SUBMITTED },
+      where: {
+        reviewed_user_id: userId,
+        review_status: ReviewStatus.SUBMITTED,
+      },
       relations: { plan: true },
       order: { submitted_at: 'DESC' },
     });
@@ -261,23 +275,21 @@ export class ReviewsService {
     review: PerformanceReviewEntity,
     viewer: Reviewer,
   ): Promise<void> {
-    if (viewer.role === Role.HR_ADMIN) return;
+    const managesReviewedUser =
+      viewer.role === Role.MANAGER && review.reviewed_user_id !== viewer.user_id
+        ? (await this.findUsersManagedBy(viewer.user_id)).has(
+            review.reviewed_user_id,
+          )
+        : false;
 
-    if (review.reviewed_user_id === viewer.user_id) {
-      if (review.review_status !== ReviewStatus.SUBMITTED) {
-        throw new ForbiddenException(
-          'This review has not been submitted yet',
-        );
-      }
-      return;
+    const denial = reviewVisibilityDenial(review, viewer, managesReviewedUser);
+
+    if (denial === 'not_submitted_yet') {
+      throw new ForbiddenException('This review has not been submitted yet');
     }
-
-    if (viewer.role === Role.MANAGER) {
-      const managed = await this.findUsersManagedBy(viewer.user_id);
-      if (managed.has(review.reviewed_user_id)) return;
+    if (denial === 'not_yours') {
+      throw new ForbiddenException('This review is not yours to read');
     }
-
-    throw new ForbiddenException('This review is not yours to read');
   }
 
   private async findUsersManagedBy(managerId: number): Promise<Set<number>> {
@@ -294,6 +306,7 @@ export class ReviewsService {
       .getRawMany<{ user_id: number }>();
     return new Set(rows.map((r) => r.user_id));
   }
+
   private async assertReviewerIsAllowed(
     manager: EntityManager,
     reviewedUserId: number,
@@ -304,26 +317,24 @@ export class ReviewsService {
       relations: { department: true },
     });
 
-    const departmentManagerId = profile?.department?.manager_id ?? null;
+    const denial = reviewerDenialReason({
+      reviewerRole: reviewer.role,
+      reviewerId: reviewer.user_id,
+      reviewedUserId,
+      departmentManagerId: profile?.department?.manager_id ?? null,
+    });
 
-    if (reviewedUserId === departmentManagerId) {
-      if (reviewer.role !== Role.HR_ADMIN) {
-        throw new ForbiddenException(
-          'A department manager is reviewed by HR, not by themselves',
-        );
-      }
-      return;
+    if (denial === 'manager_reviews_self') {
+      throw new ForbiddenException(
+        'A department manager is reviewed by HR, not by themselves',
+      );
     }
-
-    if (reviewer.role === Role.HR_ADMIN) return;
-
-    if (departmentManagerId === null) {
+    if (denial === 'no_department_manager') {
       throw new ForbiddenException(
         'This employee has no department manager, so only HR can review them',
       );
     }
-
-    if (reviewer.user_id !== departmentManagerId) {
+    if (denial === 'not_your_department') {
       throw new ForbiddenException(
         'You can only review employees in the department you manage',
       );
@@ -331,81 +342,50 @@ export class ReviewsService {
   }
 
   private assertSubmissionWindowIsOpen(plan: EvaluationPlanEntity): void {
-    if (plan.plan_status !== PlanStatus.ACTIVE) {
+    const denial = submissionWindowDenial(plan, getToday());
+
+    if (denial === 'plan_not_active') {
       throw new BadRequestException(
         `Reviews can only be submitted while the plan is active. This plan is ${plan.plan_status}.`,
       );
     }
-    const today = this.todayAsDateString();
-    if (today < plan.submission_start) {
+    if (denial === 'not_open_yet') {
       throw new BadRequestException(
         `Submission for this plan opens on ${plan.submission_start}`,
       );
     }
-    if (today > plan.submission_end) {
+    if (denial === 'closed') {
       throw new BadRequestException(
         `Submission for this plan closed on ${plan.submission_end}`,
       );
     }
   }
 
-  private todayAsDateString(): string {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${now.getFullYear()}-${month}-${day}`;
+  private scoreValidationMessage(
+    result: Extract<
+      ScoreValidation<PlanCriterionEntity, ScoreItemDto>,
+      { ok: false }
+    >,
+  ): string {
+    switch (result.reason) {
+      case 'unknown_criterion':
+        return `Criterion #${result.criteriaId} does not belong to this plan`;
+      case 'duplicate_criterion':
+        return `Criterion #${result.criteriaId} was scored twice`;
+      case 'score_above_max':
+        return `Score ${result.score} is above the maximum of ${result.maxScore} for "${result.label}"`;
+      case 'missing_criteria':
+        return `Every criterion must be scored. Missing: ${result.labels.join(', ')}`;
+    }
   }
 
-  private matchScoresToCriteria(
-    criteria: PlanCriterionEntity[],
-    items: ScoreItemDto[],
-  ): Array<{ criterion: PlanCriterionEntity; item: ScoreItemDto }> {
-    const byId = new Map(criteria.map((c) => [c.criteria_id, c]));
-    const seen = new Set<number>();
-    const matched: Array<{
-      criterion: PlanCriterionEntity;
-      item: ScoreItemDto;
-    }> = [];
-
-    for (const item of items) {
-      const criterion = byId.get(item.criteria_id);
-      if (!criterion) {
-        throw new BadRequestException(
-          `Criterion #${item.criteria_id} does not belong to this plan`,
-        );
-      }
-      if (seen.has(item.criteria_id)) {
-        throw new BadRequestException(
-          `Criterion #${item.criteria_id} was scored twice`,
-        );
-      }
-      if (item.score > criterion.max_score) {
-        throw new BadRequestException(
-          `Score ${item.score} is above the maximum of ${criterion.max_score} for "${criterion.criteria_text}"`,
-        );
-      }
-      seen.add(item.criteria_id);
-      matched.push({ criterion, item });
-    }
-
-    const missing = criteria.filter((c) => !seen.has(c.criteria_id));
-    if (missing.length) {
-      throw new BadRequestException(
-        `Every criterion must be scored. Missing: ${missing
-          .map((c) => c.criteria_text)
-          .join(', ')}`,
-      );
-    }
-
-    return matched;
-  }
-
-    private async recipientNameOf(userId: number): Promise<string> {
+  private async recipientNameOf(userId: number): Promise<string> {
     const user = await this.dataSource.getRepository(UserEntity).findOne({
       where: { user_id: userId },
       select: { first_name: true, last_name: true },
     });
-    return user ? `${user.first_name} ${user.last_name}` : 'الموظف';
+    return user
+      ? `${user.first_name} ${user.last_name}`
+      : '\u0627\u0644\u0645\u0648\u0638\u0641';
   }
-
 }

@@ -47,7 +47,7 @@ export class PlansService {
       const plan = manager.create(EvaluationPlanEntity, {
         plan_name: dto.plan_name,
         description: dto.description,
-        department_id: dto.department_id ,
+        department_id: dto.department_id,
         created_by: createdBy,
         period_start: dto.period_start,
         period_end: dto.period_end,
@@ -77,7 +77,6 @@ export class PlansService {
     );
     return this.findOne(planId);
   }
-
 
   async activate(id: number): Promise<EvaluationPlanEntity> {
     const created = await this.dataSource.transaction(async (manager) => {
@@ -184,10 +183,7 @@ export class PlansService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async update(
-    id: number,
-    dto: UpdatePlanDto,
-  ): Promise<EvaluationPlanEntity> {
+  async update(id: number, dto: UpdatePlanDto): Promise<EvaluationPlanEntity> {
     const plan = await this.plansRepository.findOne({ where: { plan_id: id } });
     if (!plan) {
       throw new NotFoundException(`Evaluation plan #${id} not found`);
@@ -313,7 +309,6 @@ export class PlansService {
     }
   }
 
-
   private async findEmployeesInScope(
     manager: EntityManager,
     plan: EvaluationPlanEntity,
@@ -337,7 +332,7 @@ export class PlansService {
     return rows.map((row) => row.user_id);
   }
 
-    private async findReviewerIds(employeeIds: number[]): Promise<number[]> {
+  private async findReviewerIds(employeeIds: number[]): Promise<number[]> {
     if (!employeeIds.length) return [];
 
     const rows = await this.dataSource

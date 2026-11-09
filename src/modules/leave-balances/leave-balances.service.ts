@@ -1,6 +1,11 @@
-import { Injectable, Logger, NotFoundException,BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository,In, } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { LeaveBalanceEntity } from './leave-balance.entity';
 import { UpdateLeaveBalanceDto } from './dto/update-leave-balance.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -12,11 +17,10 @@ import { UserEntity } from '../users/user.entity';
 import { PaymentType } from '../../common/enums/enums';
 import { EntityManager } from 'typeorm';
 import {
-  SERVICE_TIERS,
-  CARRY_OVER_CAP,
-  PRORATE_FIRST_YEAR,
-} from './leave-balance.constants';
-
+  availableDays,
+  entitlementFor,
+  carryOverOf,
+} from './leave-balance.helper';
 
 export interface PresentedLeaveBalance {
   balance_id: number;
@@ -47,10 +51,10 @@ export class LeaveBalancesService {
   ) {}
 
   private computeAvailable(balance: LeaveBalanceEntity): number {
-    return (
-      Number(balance.total_days) +
-      Number(balance.carried_over) -
-      Number(balance.used_days)
+    return availableDays(
+      balance.total_days,
+      balance.carried_over,
+      balance.used_days,
     );
   }
 
@@ -139,7 +143,7 @@ export class LeaveBalancesService {
 
     this.logger.warn(
       `Leave balance #${id} manually adjusted for user #${balance.user_id} ` +
-        `— available is now ${this.computeAvailable(saved)} days`,
+        `- available is now ${this.computeAvailable(saved)} days`,
     );
 
     return this.present(saved);
@@ -159,34 +163,6 @@ export class LeaveBalancesService {
     }
 
     return this.computeAvailable(balance);
-  }
-
-  private yearsOfService(hireDate: string, year: number): number {
-    const hire = new Date(hireDate);
-    const endOfYear = new Date(Date.UTC(year, 11, 31));
-    const ms = endOfYear.getTime() - hire.getTime();
-    return ms / (1000 * 60 * 60 * 24 * 365.25);
-  }
-
-  private entitlementFor(hireDate: string, year: number): number {
-    const years = this.yearsOfService(hireDate, year);
-
-    const tier = SERVICE_TIERS.find(
-      (t) => years >= t.minYears && years < t.maxYears,
-    );
-    const fullDays = tier ? tier.days : SERVICE_TIERS[0].days;
-
-    const hire = new Date(hireDate);
-    const hiredThisYear = hire.getUTCFullYear() === year;
-
-    if (!hiredThisYear || !PRORATE_FIRST_YEAR) {
-      return fullDays;
-    }
-
-    const monthsWorked = 12 - hire.getUTCMonth();
-    const prorated = (fullDays * monthsWorked) / 12;
-
-    return Math.round(prorated * 2) / 2;
   }
 
   async calculateForYear(year: number) {
@@ -238,7 +214,7 @@ export class LeaveBalancesService {
         }
 
         const totalDays = leaveType.uses_service_tiers
-          ? this.entitlementFor(profile.hire_date, year)
+          ? entitlementFor(profile.hire_date, year)
           : Number(leaveType.default_days);
 
         const previous = existingMap.get(
@@ -246,7 +222,7 @@ export class LeaveBalancesService {
         );
 
         const carriedOver = leaveType.uses_service_tiers
-          ? this.carryOverOf(previous)
+          ? carryOverOf(previous ? this.computeAvailable(previous) : null)
           : 0;
 
         if (existing) {
@@ -283,20 +259,13 @@ export class LeaveBalancesService {
     return { year, created, updated, skippedManual, skippedNotHired };
   }
 
-  private balanceKey(userId: number, leaveTypeId: number, year: number): string {
+  private balanceKey(
+    userId: number,
+    leaveTypeId: number,
+    year: number,
+  ): string {
     return `${userId}:${leaveTypeId}:${year}`;
   }
-
-  private carryOverOf(previous?: LeaveBalanceEntity): number {
-    if (!previous) {
-      return 0;
-    }
-
-    const remaining = this.computeAvailable(previous);
-
-    return Math.max(0, Math.min(remaining, CARRY_OVER_CAP));
-  }
-
 
   async consumeDays(
     manager: EntityManager,
@@ -318,10 +287,7 @@ export class LeaveBalancesService {
       );
     }
 
-    const available =
-      Number(balance.total_days) +
-      Number(balance.carried_over) -
-      Number(balance.used_days);
+    const available = this.computeAvailable(balance);
 
     if (days > available) {
       throw new BadRequestException(
@@ -332,9 +298,9 @@ export class LeaveBalancesService {
     balance.used_days = Number(balance.used_days) + days;
     await repo.save(balance);
 
-       this.logger.log(
+    this.logger.log(
       `Consumed ${days} days from balance #${balance.balance_id} ` +
-        `(user #${userId}) — ${available - days} days remain`,
+        `(user #${userId}) - ${available - days} days remain`,
     );
 
     return available - days;

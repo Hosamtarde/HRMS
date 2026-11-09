@@ -22,7 +22,6 @@ export class UsersService {
     private readonly usersRepository: Repository<UserEntity>,
   ) {}
 
-  
   async findByEmailWithPassword(email: string): Promise<UserEntity | null> {
     return this.usersRepository
       .createQueryBuilder('user')
@@ -39,7 +38,7 @@ export class UsersService {
     return user;
   }
 
-    async updateRole(
+  async updateRole(
     userId: number,
     role: Role,
     actorId: number,
@@ -62,7 +61,7 @@ export class UsersService {
     return saved;
   }
 
-    async updateProfile(
+  async updateProfile(
     userId: number,
     dto: UpdateProfileDto,
   ): Promise<UserEntity> {

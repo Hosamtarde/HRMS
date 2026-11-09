@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException,Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PayrollEntity } from './payroll.entity';
 import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
-import { RequestType, RequestStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
@@ -15,10 +19,12 @@ import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.servic
 import { AttendanceService } from '../attendance/attendance.service';
 import { RequestsService } from '../requests/requests.service';
 import {
-  DAYS_PER_SALARY_MONTH,
-  HALF_PAID_DEDUCTION_RATE,
-  WEEKEND_DAYS,
-} from './payroll.constants';
+  absenceDaysIn,
+  dailyRateOf,
+  netSalaryOf,
+  payableWindow,
+  totalDeductions,
+} from './payroll.helper';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 
@@ -36,33 +42,21 @@ export class PayrollService {
     private readonly dataSource: DataSource,
     private readonly loanRepaymentsService: LoanRepaymentsService,
     private readonly requestsService: RequestsService,
-    private readonly attendanceService: AttendanceService, 
-    private readonly eventEmitter: EventEmitter2,   
+    private readonly attendanceService: AttendanceService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
-
 
   private async countAbsenceDays(
     userId: number,
     salaryMonth: string,
     hireDate: string | Date,
   ): Promise<number> {
-    const [yearStr, monthStr] = salaryMonth.split('-');
-    const year = Number(yearStr);
-    const month = Number(monthStr) - 1;
-
-    const monthStart = new Date(Date.UTC(year, month, 1));
-    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
-
     const now = new Date();
     const today = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
-    const lastDay = monthEnd < today ? monthEnd : today;
 
-    const hire = new Date(hireDate);
-    const firstDay = hire > monthStart ? hire : monthStart;
-
-    if (lastDay.getTime() < firstDay.getTime()) {
+    if (!payableWindow(salaryMonth, hireDate, today)) {
       return 0;
     }
 
@@ -71,25 +65,7 @@ export class PayrollService {
       this.requestsService.getApprovedLeaveDates(userId, salaryMonth),
     ]);
 
-    let absenceDays = 0;
-
-    for (let t = firstDay.getTime(); t <= lastDay.getTime(); t += 86400000) {
-      const day = new Date(t);
-
-      if (WEEKEND_DAYS.includes(day.getUTCDay())) {
-        continue;
-      }
-
-      const iso = day.toISOString().split('T')[0];
-
-      if (attended.has(iso) || onLeave.has(iso)) {
-        continue;
-      }
-
-      absenceDays += 1;
-    }
-
-    return absenceDays;
+    return absenceDaysIn({ salaryMonth, hireDate, today, attended, onLeave });
   }
 
   async generateForEmployee(
@@ -101,7 +77,9 @@ export class PayrollService {
       const profilesRepo = manager.getRepository(EmployeeProfileEntity);
       const payrollRepo = manager.getRepository(PayrollEntity);
 
-      const profile = await profilesRepo.findOne({ where: { user_id: userId } });
+      const profile = await profilesRepo.findOne({
+        where: { user_id: userId },
+      });
 
       if (!profile) {
         throw new NotFoundException(`Employee profile #${userId} not found`);
@@ -118,7 +96,7 @@ export class PayrollService {
       }
 
       const basicSalary = Number(profile.basic_salary);
-      const dailyRate = basicSalary / DAYS_PER_SALARY_MONTH;
+      const dailyRate = dailyRateOf(basicSalary);
 
       const loanInstallment =
         await this.loanRepaymentsService.consumeNextInstallment(
@@ -130,20 +108,21 @@ export class PayrollService {
       const { unpaidDays, halfPaidDays } =
         await this.requestsService.getLeaveDaysInMonth(userId, salaryMonth);
 
-      const unpaidDeduction = unpaidDays * dailyRate;
-      const halfPaidDeduction =
-        halfPaidDays * dailyRate * HALF_PAID_DEDUCTION_RATE;
-
       const absenceDays = await this.countAbsenceDays(
         userId,
         salaryMonth,
         profile.hire_date,
       );
-      const absenceDeduction = absenceDays * dailyRate;
 
-      const deductions = Math.round((loanInstallment + unpaidDeduction + halfPaidDeduction + absenceDeduction) * 100, ) / 100;
+      const deductions = totalDeductions({
+        loanInstallment,
+        unpaidDays,
+        halfPaidDays,
+        absenceDays,
+        dailyRate,
+      });
 
-      const netSalary = Math.round((basicSalary + bonuses - deductions) * 100) / 100;
+      const netSalary = netSalaryOf(basicSalary, bonuses, deductions);
 
       const payroll = await payrollRepo.save(
         payrollRepo.create({
@@ -191,7 +170,7 @@ export class PayrollService {
 
     return result.payroll;
   }
-  
+
   async generate(
     dto: GeneratePayrollDto,
   ): Promise<PayrollEntity[] | PayrollEntity> {
@@ -244,7 +223,6 @@ export class PayrollService {
     return results;
   }
 
-
   async findAll(
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<PayrollEntity>> {
@@ -282,7 +260,7 @@ export class PayrollService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-    async findOne(id: number): Promise<PayrollEntity> {
+  async findOne(id: number): Promise<PayrollEntity> {
     const payroll = await this.payrollRepository.findOne({
       where: { payroll_id: id },
       relations: { user: true },
@@ -305,10 +283,11 @@ export class PayrollService {
       payroll.deductions = dto.deductions;
     }
 
-    payroll.net_salary =
-      Number(payroll.basic_salary) +
-      Number(payroll.bonuses) -
-      Number(payroll.deductions);
+    payroll.net_salary = netSalaryOf(
+      payroll.basic_salary,
+      payroll.bonuses,
+      payroll.deductions,
+    );
 
     const saved = await this.payrollRepository.save(payroll);
 
@@ -330,5 +309,4 @@ export class PayrollService {
 
     return { message: `Payroll record #${id} deleted successfully` };
   }
-  
 }

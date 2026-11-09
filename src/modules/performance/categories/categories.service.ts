@@ -64,7 +64,6 @@ export class CategoriesService {
   ): Promise<CriteriaCategoryEntity> {
     const category = await this.findOne(id);
 
-    
     if (dto.category_name && dto.category_name !== category.category_name) {
       await this.assertNameIsFree(dto.category_name);
     }

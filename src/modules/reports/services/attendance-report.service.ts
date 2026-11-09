@@ -24,7 +24,10 @@ export class AttendanceReportService {
     private readonly profilesRepository: Repository<EmployeeProfileEntity>,
   ) {}
 
-    async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
+  async build(
+    query: ReportQueryDto,
+    scope: ReportScope,
+  ): Promise<ReportResult> {
     const builder = this.profilesRepository
       .createQueryBuilder('p')
       .innerJoin('p.user', 'u')
@@ -108,8 +111,18 @@ export class AttendanceReportService {
         { key: 'lateDays', label: 'أيام التأخير', type: 'number', width: 14 },
         { key: 'absentDays', label: 'أيام الغياب', type: 'number', width: 14 },
         { key: 'leaveDays', label: 'أيام الإجازة', type: 'number', width: 14 },
-        { key: 'totalHours', label: 'مجموع الساعات', type: 'number', width: 16 },
-        { key: 'attendanceRate', label: 'نسبة الحضور', type: 'percent', width: 14 },
+        {
+          key: 'totalHours',
+          label: 'مجموع الساعات',
+          type: 'number',
+          width: 16,
+        },
+        {
+          key: 'attendanceRate',
+          label: 'نسبة الحضور',
+          type: 'percent',
+          width: 14,
+        },
       ],
       rows,
       summary: [

@@ -103,4 +103,3 @@ export enum ReportFormat {
   EXCEL = 'excel',
   PDF = 'pdf',
 }
-

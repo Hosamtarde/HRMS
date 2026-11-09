@@ -4,6 +4,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { LoanRepaymentEntity } from './loan-repayment.entity';
 import { RequestEntity } from '../requests/request.entity';
 import { RepaymentStatus } from '../../common/enums/enums';
+import { buildSchedule, summariseLoan } from './loan-repayment.helper';
 
 @Injectable()
 export class LoanRepaymentsService {
@@ -14,56 +15,35 @@ export class LoanRepaymentsService {
     private readonly repaymentsRepository: Repository<LoanRepaymentEntity>,
   ) {}
 
-
   async generateSchedule(
     manager: EntityManager,
     request: RequestEntity,
   ): Promise<void> {
     const repo = manager.getRepository(LoanRepaymentEntity);
 
-    const loanAmount = Number(request.loan_amount);
-    const periods = Number(request.repayment_period);
+    const schedule = buildSchedule(
+      request.loan_amount,
+      request.repayment_period,
+      new Date(),
+    );
 
-    const baseInstallment = Math.round((loanAmount / periods) * 100) / 100;
-
-    const rows: LoanRepaymentEntity[] = [];
-    let allocated = 0;
-
-    for (let i = 1; i <= periods; i++) {
-      const isLast = i === periods;
-      const amount = isLast
-        ? Math.round((loanAmount - allocated) * 100) / 100
-        : baseInstallment;
-
-      allocated += amount;
-
-      rows.push(
-        repo.create({
-          request_id: request.request_id,
-          installment_no: i,
-          due_date: this.endOfMonthAfter(i),
-          amount,
-          repayment_status: RepaymentStatus.PENDING,
-        }),
-      );
-    }
+    const rows = schedule.map((row) =>
+      repo.create({
+        request_id: request.request_id,
+        installment_no: row.installment_no,
+        due_date: row.due_date,
+        amount: row.amount,
+        repayment_status: RepaymentStatus.PENDING,
+      }),
+    );
 
     await repo.save(rows);
 
     this.logger.log(
-      `Generated ${periods} instalments for loan #${request.request_id} ` +
-        `— ${loanAmount} total, ${baseInstallment} a month`,
+      `Generated ${schedule.length} instalments for loan #${request.request_id} ` +
+        `- ${Number(request.loan_amount)} total, ${schedule[0]?.amount ?? 0} a month`,
     );
   }
-
-  private endOfMonthAfter(n: number): string {
-    const now = new Date();
-    const target = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + n + 1, 0),
-    );
-    return target.toISOString().slice(0, 10);
-  }
-
 
   async consumeNextInstallment(
     manager: EntityManager,
@@ -98,7 +78,7 @@ export class LoanRepaymentsService {
 
     this.logger.log(
       `Instalment ${next.installment_no} of loan #${next.request_id} ` +
-        `paid — ${next.amount} deducted for user #${userId}`,
+        `paid - ${next.amount} deducted for user #${userId}`,
     );
 
     return Number(next.amount);
@@ -116,30 +96,11 @@ export class LoanRepaymentsService {
       );
     }
 
-    const paid = instalments.filter(
-      (i) => i.repayment_status === RepaymentStatus.PAID,
-    );
-
-    const loanAmount = instalments.reduce((sum, i) => sum + Number(i.amount), 0);
-    const paidAmount = paid.reduce((sum, i) => sum + Number(i.amount), 0);
-
-    const nextDue = instalments.find(
-      (i) => i.repayment_status === RepaymentStatus.PENDING,
-
-      
-    );
-    
-    
+    const summary = summariseLoan(instalments);
 
     return {
       request_id: requestId,
-      loan_amount: Math.round(loanAmount * 100) / 100,
-      installments_total: instalments.length,
-      installments_paid: paid.length,
-      paid_amount: Math.round(paidAmount * 100) / 100,
-      remaining_amount: Math.round((loanAmount - paidAmount) * 100) / 100,
-      is_settled: paid.length === instalments.length,
-      next_due_date: nextDue ? nextDue.due_date : null,
+      ...summary,
       installments: instalments.map((i) => ({
         installment_no: i.installment_no,
         due_date: i.due_date,
@@ -150,7 +111,7 @@ export class LoanRepaymentsService {
       })),
     };
   }
-  
+
   async attachPayroll(
     manager: EntityManager,
     userId: number,

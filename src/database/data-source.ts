@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 
-config(); 
+config();
 
 export default new DataSource({
   type: 'mysql',
@@ -12,6 +12,6 @@ export default new DataSource({
   database: process.env.DB_NAME,
   timezone: 'Z',
   entities: ['src/**/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],    
-  synchronize: false,                      
+  migrations: ['src/database/migrations/*.ts'],
+  synchronize: false,
 });

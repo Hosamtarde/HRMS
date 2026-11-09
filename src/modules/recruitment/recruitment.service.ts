@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RecruitmentEntity } from './recruitment.entity';
@@ -12,6 +16,12 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
+import {
+  allowedNextStatuses,
+  canTransition,
+  isTerminalStatus,
+  safeUploadName,
+} from './recruitment-rules.helper';
 
 @Injectable()
 export class RecruitmentService {
@@ -61,6 +71,16 @@ export class RecruitmentService {
     status: RecruitmentStatus,
   ): Promise<RecruitmentEntity> {
     const application = await this.findOne(id);
+    const current = application.application_status;
+
+    if (!canTransition(current, status)) {
+      throw new BadRequestException(
+        isTerminalStatus(current)
+          ? `This application is already ${current} and cannot change again.`
+          : `An application that is ${current} can only move to: ${allowedNextStatuses(current).join(', ')}.`,
+      );
+    }
+
     application.application_status = status;
     const saved = await this.recruitmentRepository.save(application);
 
@@ -72,14 +92,16 @@ export class RecruitmentService {
       status,
     });
 
-    this.logger.log(`Application #${id} status changed to ${status}`);
+    this.logger.log(
+      `Application #${id} status changed from ${current} to ${status}`,
+    );
 
     return saved;
   }
 
-    async remove(id: number): Promise<{ message: string }> {
+  async remove(id: number): Promise<{ message: string }> {
     const application = await this.findOne(id);
-    const fileName = application.cv_file;
+    const fileName = safeUploadName(application.cv_file);
 
     await this.recruitmentRepository.remove(application);
 
@@ -100,5 +122,4 @@ export class RecruitmentService {
 
     return { message: `Application #${id} deleted successfully` };
   }
-  
-}0
+}

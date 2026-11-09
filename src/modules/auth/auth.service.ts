@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RefreshTokenEntity } from './refresh-token.entity';
 import { LoginDto } from './dto/login.dto';
+import type { JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -61,8 +58,8 @@ export class AuthService {
   async refreshToken(token: string) {
     let payload: { sub: number };
     try {
-      payload = await this.jwtService.verifyAsync(token, {
-        secret: this.config.get<string>('JWT_REFRESH_SECRET') as any,
+      payload = await this.jwtService.verifyAsync<{ sub: number }>(token, {
+        secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -129,11 +126,13 @@ export class AuthService {
     const access_token = await this.jwtService.signAsync(payload);
 
     const refresh_token = await this.jwtService.signAsync(payload, {
-      secret: this.config.get<string>('JWT_REFRESH_SECRET') as any,
-      expiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') as any,
+      secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.config.getOrThrow<string>(
+        'JWT_REFRESH_EXPIRES_IN',
+      ) as JwtSignOptions['expiresIn'],
     });
 
-    const decoded = this.jwtService.decode(refresh_token) as { exp: number };
+    const decoded = this.jwtService.decode<{ exp: number }>(refresh_token);
 
     await this.refreshTokensRepository.save(
       this.refreshTokensRepository.create({

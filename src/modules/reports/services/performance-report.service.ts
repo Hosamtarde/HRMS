@@ -31,7 +31,10 @@ export class PerformanceReportService {
     private readonly reviewsRepository: Repository<PerformanceReviewEntity>,
   ) {}
 
-  async build(query: ReportQueryDto, scope: ReportScope): Promise<ReportResult> {
+  async build(
+    query: ReportQueryDto,
+    scope: ReportScope,
+  ): Promise<ReportResult> {
     const builder = this.reviewsRepository
       .createQueryBuilder('r')
       .innerJoin('r.plan', 'pl')
@@ -111,7 +114,10 @@ export class PerformanceReportService {
         { label: 'عدد التقييمات', value: rows.length },
         { label: 'مُسلَّمة', value: submitted },
         { label: 'بانتظار التقييم', value: rows.length - submitted },
-        { label: 'متوسط النتائج', value: average === null ? '—' : `${average}%` },
+        {
+          label: 'متوسط النتائج',
+          value: average === null ? '—' : `${average}%`,
+        },
         {
           label: 'أعلى نتيجة',
           value: scored.length === 0 ? '—' : `${Math.max(...scored)}%`,

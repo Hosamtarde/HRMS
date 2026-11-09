@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsOptional, Validate } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Validate,
+} from 'class-validator';
 import { ReportFormat } from '../../../common/enums/enums';
 import { IsNotBeforeConstraint } from '../../../common/validators/date-range.validator';
 

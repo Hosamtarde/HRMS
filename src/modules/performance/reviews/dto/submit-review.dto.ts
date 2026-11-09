@@ -10,7 +10,9 @@ import {
 import { ScoreItemDto } from './score-item.dto';
 
 export class SubmitReviewDto {
-  @ApiPropertyOptional({ example: 'أداء ممتاز خلال الربع، مع ملاحظة على الالتزام بالمواعيد.' })
+  @ApiPropertyOptional({
+    example: 'أداء ممتاز خلال الربع، مع ملاحظة على الالتزام بالمواعيد.',
+  })
   @IsOptional()
   @IsString()
   reviewer_comment?: string;

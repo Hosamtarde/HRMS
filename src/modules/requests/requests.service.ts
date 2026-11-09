@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -18,6 +24,17 @@ import { LoanRepaymentsService } from '../loan-repayments/loan-repayments.servic
 import { NOTIFICATION_EVENTS } from '../../common/events/notification-events';
 import { LOW_LEAVE_BALANCE_THRESHOLD } from '../leave-balances/leave-balance.constants';
 import { OrgChartService } from '../org-chart/org-chart.service';
+import {
+  canAccessRequest,
+  clampToMonth,
+  countLeaveDays,
+  datesInSpan,
+  daysInSpan,
+  deductsFromBalance,
+  isPending,
+  isValidLeaveRange,
+  reviewDenialReason,
+} from './request-rules.helper';
 
 @Injectable()
 export class RequestsService {
@@ -36,7 +53,9 @@ export class RequestsService {
 
   async create(userId: number, dto: CreateRequestDto): Promise<RequestEntity> {
     if (dto.request_type === RequestType.LEAVE) {
-      const leaveType = await this.leaveTypesService.findOne(dto.leave_type_id!);
+      const leaveType = await this.leaveTypesService.findOne(
+        dto.leave_type_id!,
+      );
       await this.assertSufficientBalance(userId, dto, leaveType);
     }
 
@@ -57,31 +76,21 @@ export class RequestsService {
     return saved;
   }
 
-  private countLeaveDays(startDate: string, endDate: string): number {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const ms = end.getTime() - start.getTime();
-    return Math.floor(ms / 86400000) + 1;
-  }
-
   private async assertSufficientBalance(
     userId: number,
     dto: CreateRequestDto,
     leaveType: LeaveTypeEntity,
   ): Promise<void> {
-    const start = new Date(dto.start_date!);
-    const end = new Date(dto.end_date!);
-
-    if (end.getTime() < start.getTime()) {
+    if (!isValidLeaveRange(dto.start_date!, dto.end_date!)) {
       throw new BadRequestException('end_date must not be before start_date');
     }
 
-    if (leaveType.payment_type === PaymentType.UNPAID) {
+    if (!deductsFromBalance(leaveType.payment_type)) {
       return;
     }
 
-    const requestedDays = this.countLeaveDays(dto.start_date!, dto.end_date!);
-    const year = start.getUTCFullYear();
+    const requestedDays = countLeaveDays(dto.start_date!, dto.end_date!);
+    const year = new Date(dto.start_date!).getUTCFullYear();
 
     const available = await this.leaveBalancesService.getAvailableDays(
       userId,
@@ -136,7 +145,22 @@ export class RequestsService {
     return buildPaginatedResult(data, total, page, limit);
   }
 
-  async findOne(id: number, userId: number, role: Role): Promise<RequestEntity> {
+  private async resolveScope(
+    role: Role,
+    actorId: number,
+    ownerId: number,
+  ): Promise<boolean> {
+    if (role !== Role.MANAGER || ownerId === actorId) {
+      return false;
+    }
+    return this.orgChartService.isInSubtree(actorId, ownerId);
+  }
+
+  async findOne(
+    id: number,
+    userId: number,
+    role: Role,
+  ): Promise<RequestEntity> {
     const request = await this.requestsRepository.findOne({
       where: { request_id: id },
       relations: { user: true, reviewer: true },
@@ -146,10 +170,17 @@ export class RequestsService {
       throw new NotFoundException(`Request #${id} not found`);
     }
 
-    const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
+    const isInScope = await this.resolveScope(role, userId, request.user_id);
 
-    if (!isManagerOrAdmin && request.user_id !== userId) {
-      throw new ForbiddenException('You can only view your own requests');
+    if (
+      !canAccessRequest({
+        role,
+        actorId: userId,
+        ownerId: request.user_id,
+        isInScope,
+      })
+    ) {
+      throw new ForbiddenException('You do not have access to this request');
     }
 
     return request;
@@ -177,28 +208,38 @@ export class RequestsService {
         throw new NotFoundException(`Request #${id} not found`);
       }
 
-      if (request.request_status !== RequestStatus.PENDING) {
+      if (!isPending(request.request_status)) {
         this.logger.warn(
           `Review rejected: request #${id} already ${request.request_status}`,
         );
-        throw new BadRequestException('This request has already been processed');
+        throw new BadRequestException(
+          'This request has already been processed',
+        );
       }
 
-      const [reviewer] = await manager.query(
+      const [reviewer] = await manager.query<{ role: Role }[]>(
         `SELECT role FROM users WHERE user_id = ?`,
         [reviewerId],
       );
-      if (reviewer?.role !== Role.HR_ADMIN) {
-        if (request.user_id === reviewerId) {
-          throw new ForbiddenException('You cannot review your own request');
-        }
-        const inScope = await this.orgChartService.isInSubtree(
-          reviewerId,
-          request.user_id,
-        );
-        if (!inScope) {
-          throw new ForbiddenException('This employee does not report to you');
-        }
+      const reviewerRole = reviewer?.role ?? Role.EMPLOYEE;
+
+      const isInScope =
+        reviewerRole === Role.HR_ADMIN || request.user_id === reviewerId
+          ? false
+          : await this.orgChartService.isInSubtree(reviewerId, request.user_id);
+
+      const denial = reviewDenialReason({
+        role: reviewerRole,
+        actorId: reviewerId,
+        ownerId: request.user_id,
+        isInScope,
+      });
+
+      if (denial === 'own_request') {
+        throw new ForbiddenException('You cannot review your own request');
+      }
+      if (denial === 'out_of_scope') {
+        throw new ForbiddenException('This employee does not report to you');
       }
 
       if (
@@ -209,11 +250,8 @@ export class RequestsService {
           request.leave_type_id,
         );
 
-        if (leaveType.payment_type !== PaymentType.UNPAID) {
-          const days = this.countLeaveDays(
-            request.start_date,
-            request.end_date,
-          );
+        if (deductsFromBalance(leaveType.payment_type)) {
+          const days = countLeaveDays(request.start_date, request.end_date);
           const year = new Date(request.start_date).getUTCFullYear();
 
           ctx.remaining = await this.leaveBalancesService.consumeDays(
@@ -254,7 +292,10 @@ export class RequestsService {
       approved: dto.status === RequestStatus.APPROVED,
     });
 
-    if (ctx.remaining !== null && ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD) {
+    if (
+      ctx.remaining !== null &&
+      ctx.remaining <= LOW_LEAVE_BALANCE_THRESHOLD
+    ) {
       this.eventEmitter.emit(NOTIFICATION_EVENTS.LEAVE_BALANCE_LOW, {
         userId: saved.user_id,
         typeName: ctx.typeName,
@@ -278,13 +319,20 @@ export class RequestsService {
       throw new NotFoundException(`Request #${id} not found`);
     }
 
-    const isManagerOrAdmin = role === Role.MANAGER || role === Role.HR_ADMIN;
+    const isInScope = await this.resolveScope(role, userId, request.user_id);
 
-    if (!isManagerOrAdmin && request.user_id !== userId) {
-      throw new ForbiddenException('You can only delete your own requests');
+    if (
+      !canAccessRequest({
+        role,
+        actorId: userId,
+        ownerId: request.user_id,
+        isInScope,
+      })
+    ) {
+      throw new ForbiddenException('You do not have access to this request');
     }
 
-    if (request.request_status !== RequestStatus.PENDING) {
+    if (!isPending(request.request_status)) {
       this.logger.warn(
         `Delete rejected: request #${id} is already ${request.request_status}`,
       );
@@ -306,31 +354,6 @@ export class RequestsService {
     });
 
     return { message: `Request #${id} has been deleted` };
-  }
-
-  private clampToMonth(
-    startDate: string,
-    endDate: string,
-    salaryMonth: string,
-  ): { from: Date; to: Date } | null {
-    const [yearStr, monthStr] = salaryMonth.split('-');
-    const year = Number(yearStr);
-    const month = Number(monthStr) - 1;
-
-    const monthStart = new Date(Date.UTC(year, month, 1));
-    const monthEnd = new Date(Date.UTC(year, month + 1, 0));
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    const from = start > monthStart ? start : monthStart;
-    const to = end < monthEnd ? end : monthEnd;
-
-    if (to.getTime() < from.getTime()) {
-      return null;
-    }
-
-    return { from, to };
   }
 
   async getLeaveDaysInMonth(
@@ -359,18 +382,13 @@ export class RequestsService {
         continue;
       }
 
-      const span = this.clampToMonth(
-        leave.start_date,
-        leave.end_date,
-        salaryMonth,
-      );
+      const span = clampToMonth(leave.start_date, leave.end_date, salaryMonth);
 
       if (!span) {
         continue;
       }
 
-      const days =
-        Math.floor((span.to.getTime() - span.from.getTime()) / 86400000) + 1;
+      const days = daysInSpan(span);
 
       if (paymentType === PaymentType.UNPAID) {
         unpaidDays += days;
@@ -398,18 +416,14 @@ export class RequestsService {
     const dates = new Set<string>();
 
     for (const leave of approvedLeaves) {
-      const span = this.clampToMonth(
-        leave.start_date,
-        leave.end_date,
-        salaryMonth,
-      );
+      const span = clampToMonth(leave.start_date, leave.end_date, salaryMonth);
 
       if (!span) {
         continue;
       }
 
-      for (let t = span.from.getTime(); t <= span.to.getTime(); t += 86400000) {
-        dates.add(new Date(t).toISOString().split('T')[0]);
+      for (const date of datesInSpan(span)) {
+        dates.add(date);
       }
     }
 

@@ -22,7 +22,7 @@ export class RecipientsService {
     return user ? `${user.first_name} ${user.last_name}` : 'موظف';
   }
 
-    async getContact(
+  async getContact(
     userId: number,
   ): Promise<{ name: string; email: string } | null> {
     const user = await this.usersRepository.findOne({

@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+﻿import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../../app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,11 +11,27 @@ import * as bcrypt from 'bcrypt';
 const logger = new Logger('Seed');
 
 const CRITERIA_CATEGORIES = [
-  { category_name: 'جودة العمل', description: 'دقة واكتمال ما يُسلَّم' },
-  { category_name: 'الالتزام بالمواعيد', description: 'التسليم في التواريخ المتفق عليها' },
-  { category_name: 'التعاون', description: 'العمل مع باقي أعضاء القسم' },
-  { category_name: 'المبادرة', description: 'اقتراح التحسينات ومعالجة المشكلات دون انتظار' },
-  { category_name: 'الانضباط', description: 'الحضور والالتزام بسياسات العمل' },
+  {
+    category_name: 'ط¬ظˆط¯ط© ط§ظ„ط¹ظ…ظ„',
+    description: 'ط¯ظ‚ط© ظˆط§ظƒطھظ…ط§ظ„ ظ…ط§ ظٹظڈط³ظ„ظژظ‘ظ…',
+  },
+  {
+    category_name: 'ط§ظ„ط§ظ„طھط²ط§ظ… ط¨ط§ظ„ظ…ظˆط§ط¹ظٹط¯',
+    description: 'ط§ظ„طھط³ظ„ظٹظ… ظپظٹ ط§ظ„طھظˆط§ط±ظٹط® ط§ظ„ظ…طھظپظ‚ ط¹ظ„ظٹظ‡ط§',
+  },
+  {
+    category_name: 'ط§ظ„طھط¹ط§ظˆظ†',
+    description: 'ط§ظ„ط¹ظ…ظ„ ظ…ط¹ ط¨ط§ظ‚ظٹ ط£ط¹ط¶ط§ط، ط§ظ„ظ‚ط³ظ…',
+  },
+  {
+    category_name: 'ط§ظ„ظ…ط¨ط§ط¯ط±ط©',
+    description:
+      'ط§ظ‚طھط±ط§ط­ ط§ظ„طھط­ط³ظٹظ†ط§طھ ظˆظ…ط¹ط§ظ„ط¬ط© ط§ظ„ظ…ط´ظƒظ„ط§طھ ط¯ظˆظ† ط§ظ†طھط¸ط§ط±',
+  },
+  {
+    category_name: 'ط§ظ„ط§ظ†ط¶ط¨ط§ط·',
+    description: 'ط§ظ„ط­ط¶ظˆط± ظˆط§ظ„ط§ظ„طھط²ط§ظ… ط¨ط³ظٹط§ط³ط§طھ ط§ظ„ط¹ظ…ظ„',
+  },
 ];
 
 async function seedUser(
@@ -51,7 +67,9 @@ async function seedCriteriaCategories(
       where: { category_name: category.category_name },
     });
     if (existing) {
-      logger.warn(`Criteria category already exists: ${category.category_name}`);
+      logger.warn(
+        `Criteria category already exists: ${category.category_name}`,
+      );
       continue;
     }
     await repo.save(repo.create(category));
@@ -68,10 +86,16 @@ async function seed() {
   );
 
   await seedUser(users, 'admin@hrms.com', 'admin123', Role.HR_ADMIN, 'HR');
-  await seedUser(users, 'employee@hrms.com', 'employee123', Role.EMPLOYEE, 'Test');
+  await seedUser(
+    users,
+    'employee@hrms.com',
+    'employee123',
+    Role.EMPLOYEE,
+    'Test',
+  );
   await seedCriteriaCategories(categories);
 
   await app.close();
 }
 
-seed();
+void seed();
