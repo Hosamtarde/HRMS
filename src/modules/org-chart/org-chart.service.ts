@@ -15,31 +15,15 @@ import {
   OrgListItem,
   OrgListResult,
   OrgNode,
-  OrgPerson,
 } from './interfaces/org-chart.interface';
-
-interface ListRow {
-  user_id: number;
-  reports_to: number | null;
-  first_name: string;
-  last_name: string;
-  role: string;
-  position: string | null;
-  department_name: string | null;
-  depth?: number;
-}
-
-interface ListItemRow {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-  role: string;
-  position: string | null;
-  department_name: string | null;
-  reports_to: number | null;
-  manager_name: string | null;
-  direct_reports: number | string;
-}
+import {
+  buildListFilters,
+  buildTree,
+  ListItemRow,
+  ListRow,
+  toListItem,
+  toPerson,
+} from './org-chart.helper';
 
 const PERSON_FIELDS = `p.user_id AS user_id, p.reports_to AS reports_to, u.first_name AS first_name, u.last_name AS last_name, u.role AS role, p.position AS position, d.department_name AS department_name`;
 
@@ -116,14 +100,19 @@ export class OrgChartService {
       throw new NotFoundException('Employee profile not found');
     }
     const counts = await this.countDirectReports(rows.map((r) => r.user_id));
-    return this.buildTree(rows, counts, root);
+
+    const tree = buildTree(rows, counts, root);
+    if (!tree) {
+      throw new NotFoundException('Employee profile not found');
+    }
+    return tree;
   }
 
   async getList(query: OrgListQueryDto): Promise<OrgListResult> {
     const page = Math.max(Number(query.page) || 1, 1);
     const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
     const offset = (page - 1) * limit;
-    const { where, params } = this.buildListFilters(query);
+    const { where, params } = buildListFilters(query);
 
     const rows = await this.dataSource.query<ListItemRow[]>(
       `SELECT ${LIST_FIELDS} ${LIST_FROM} ${where} ORDER BY p.reports_to IS NULL DESC, u.first_name ASC LIMIT ${limit} OFFSET ${offset}`,
@@ -137,7 +126,7 @@ export class OrgChartService {
     const total = Number(totals[0].total);
 
     return {
-      data: rows.map((row): OrgListItem => this.toListItem(row)),
+      data: rows.map((row): OrgListItem => toListItem(row)),
       total,
       page,
       limit,
@@ -169,10 +158,10 @@ export class OrgChartService {
       [userId],
     );
     return {
-      self: this.toPerson(row),
-      manager: managerRows.length ? this.toPerson(managerRows[0]) : null,
-      peers: peerRows.map((r) => this.toPerson(r)),
-      directReports: reportRows.map((r) => this.toPerson(r)),
+      self: toPerson(row),
+      manager: managerRows.length ? toPerson(managerRows[0]) : null,
+      peers: peerRows.map((r) => toPerson(r)),
+      directReports: reportRows.map((r) => toPerson(r)),
       chain: await this.getAncestors(userId),
     };
   }
@@ -182,7 +171,7 @@ export class OrgChartService {
       userId,
       this.maxDepth,
     ]);
-    return rows.map((r) => ({ ...this.toPerson(r), depth: Number(r.depth) }));
+    return rows.map((r) => ({ ...toPerson(r), depth: Number(r.depth) }));
   }
 
   async isInSubtree(
@@ -286,32 +275,6 @@ export class OrgChartService {
     });
   }
 
-  private buildListFilters(query: OrgListQueryDto): {
-    where: string;
-    params: unknown[];
-  } {
-    const conditions: string[] = [];
-    const params: unknown[] = [];
-    if (query.q) {
-      conditions.push(
-        `(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR p.position LIKE ?)`,
-      );
-      params.push(`%${query.q}%`, `%${query.q}%`);
-    }
-    if (query.departmentId) {
-      conditions.push('p.department_id = ?');
-      params.push(query.departmentId);
-    }
-    if (query.managerId) {
-      conditions.push('p.reports_to = ?');
-      params.push(query.managerId);
-    }
-    return {
-      where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
-      params,
-    };
-  }
-
   private async findRoot(): Promise<number> {
     const rows = await this.dataSource.query<{ user_id: number }[]>(
       `SELECT user_id FROM employee_profiles WHERE reports_to IS NULL ORDER BY user_id LIMIT 1`,
@@ -340,59 +303,5 @@ export class OrgChartService {
       counts.set(Number(row.manager_id), Number(row.total));
     }
     return counts;
-  }
-
-  private buildTree(
-    rows: ListRow[],
-    counts: Map<number, number>,
-    rootUserId: number,
-  ): OrgNode {
-    const nodes = new Map<number, OrgNode>();
-    for (const row of rows) {
-      nodes.set(Number(row.user_id), {
-        ...this.toPerson(row),
-        directReportsCount: counts.get(Number(row.user_id)) ?? 0,
-        children: [],
-      });
-    }
-    for (const row of rows) {
-      const id = Number(row.user_id);
-      if (id === rootUserId || row.reports_to === null) {
-        continue;
-      }
-      const parent = nodes.get(Number(row.reports_to));
-      const node = nodes.get(id);
-      if (parent && node) {
-        parent.children.push(node);
-      }
-    }
-    const root = nodes.get(rootUserId);
-    if (!root) {
-      throw new NotFoundException('Employee profile not found');
-    }
-    return root;
-  }
-
-  private toListItem(row: ListItemRow): OrgListItem {
-    return {
-      userId: Number(row.user_id),
-      fullName: `${row.first_name} ${row.last_name}`,
-      role: row.role,
-      position: row.position,
-      departmentName: row.department_name,
-      managerId: row.reports_to === null ? null : Number(row.reports_to),
-      managerName: row.manager_name,
-      directReportsCount: Number(row.direct_reports),
-    };
-  }
-
-  private toPerson(row: ListRow): OrgPerson {
-    return {
-      userId: Number(row.user_id),
-      fullName: `${row.first_name} ${row.last_name}`,
-      role: row.role,
-      position: row.position,
-      departmentName: row.department_name,
-    };
   }
 }
