@@ -123,7 +123,6 @@ export class PayrollService {
       });
 
       const netSalary = netSalaryOf(basicSalary, bonuses, deductions);
-      Math.round((basicSalary + bonuses - deductions) * 100) / 100;
 
       const payroll = await payrollRepo.save(
         payrollRepo.create({
