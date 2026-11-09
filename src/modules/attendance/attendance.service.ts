@@ -6,13 +6,18 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { AttendanceEntity } from './attendance.entity';
-import { AttendanceStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { OrgChartService } from '../org-chart/org-chart.service';
 import { Role } from '../../common/enums/enums';
 import { getToday } from '../../common/utils/date.util';
+import {
+  canViewEmployeeAttendance,
+  determineStatus,
+  monthRange,
+  workingHoursBetween,
+} from './attendance.helper';
 
 @Injectable()
 export class AttendanceService {
@@ -22,29 +27,8 @@ export class AttendanceService {
     private readonly orgChartService: OrgChartService,
   ) {}
 
-  private getToday(): string {
-    return getToday();
-  }
-
-  private readonly workStartTime = '08:00:00';
-  private readonly graceMinutes = 15;
-
-  private toSeconds(time: string): number {
-    const [hours, minutes, seconds] = time.split(':').map(Number);
-    return hours * 3600 + minutes * 60 + seconds;
-  }
-
-  private determineStatus(checkInTime: string): AttendanceStatus {
-    const allowedSeconds =
-      this.toSeconds(this.workStartTime) + this.graceMinutes * 60;
-
-    return this.toSeconds(checkInTime) > allowedSeconds
-      ? AttendanceStatus.LATE
-      : AttendanceStatus.PRESENT;
-  }
-
   async checkIn(userId: number): Promise<AttendanceEntity> {
-    const today = this.getToday();
+    const today = getToday();
 
     const existing = await this.attendanceRepository.findOne({
       where: { user_id: userId, attendance_date: today },
@@ -54,21 +38,20 @@ export class AttendanceService {
       throw new BadRequestException('You have already checked in today');
     }
 
-    const now = new Date();
-    const currentTime = now.toTimeString().split(' ')[0];
+    const currentTime = new Date().toTimeString().split(' ')[0];
 
     const record = this.attendanceRepository.create({
       user_id: userId,
       check_in_time: currentTime,
       attendance_date: today,
-      attendance_status: this.determineStatus(currentTime),
+      attendance_status: determineStatus(currentTime),
     });
 
     return this.attendanceRepository.save(record);
   }
 
   async checkOut(userId: number): Promise<AttendanceEntity> {
-    const today = this.getToday();
+    const today = getToday();
 
     const record = await this.attendanceRepository.findOne({
       where: { user_id: userId, attendance_date: today },
@@ -82,15 +65,13 @@ export class AttendanceService {
       throw new BadRequestException('You have already checked out today');
     }
 
-    const now = new Date();
-    const checkOutTime = now.toTimeString().split(' ')[0];
-
-    const inSeconds = this.toSeconds(record.check_in_time);
-    const outSeconds = this.toSeconds(checkOutTime);
-    const workingHours = Number(((outSeconds - inSeconds) / 3600).toFixed(2));
+    const checkOutTime = new Date().toTimeString().split(' ')[0];
 
     record.check_out_time = checkOutTime;
-    record.working_hours = workingHours;
+    record.working_hours = workingHoursBetween(
+      record.check_in_time,
+      checkOutTime,
+    );
 
     return this.attendanceRepository.save(record);
   }
@@ -129,14 +110,22 @@ export class AttendanceService {
   ): Promise<PaginatedResult<AttendanceEntity>> {
     const { page, limit } = paginationDto;
 
-    if (role === Role.MANAGER && userId !== requesterId) {
-      const inScope = await this.orgChartService.isInSubtree(
-        requesterId,
-        userId,
+    const isInScope =
+      role === Role.MANAGER && userId !== requesterId
+        ? await this.orgChartService.isInSubtree(requesterId, userId)
+        : false;
+
+    if (
+      !canViewEmployeeAttendance({
+        role,
+        actorId: requesterId,
+        targetId: userId,
+        isInScope,
+      })
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this attendance record',
       );
-      if (!inScope) {
-        throw new ForbiddenException('This employee does not report to you');
-      }
     }
 
     const [data, total] = await this.attendanceRepository.findAndCount({
@@ -154,21 +143,12 @@ export class AttendanceService {
     userId: number,
     salaryMonth: string,
   ): Promise<Set<string>> {
-    const [yearStr, monthStr] = salaryMonth.split('-');
-    const year = Number(yearStr);
-    const month = Number(monthStr) - 1;
-
-    const monthStart = new Date(Date.UTC(year, month, 1))
-      .toISOString()
-      .split('T')[0];
-    const monthEnd = new Date(Date.UTC(year, month + 1, 0))
-      .toISOString()
-      .split('T')[0];
+    const { start, end } = monthRange(salaryMonth);
 
     const records = await this.attendanceRepository.find({
       where: {
         user_id: userId,
-        attendance_date: Between(monthStart, monthEnd),
+        attendance_date: Between(start, end),
       },
       select: { attendance_date: true },
     });
