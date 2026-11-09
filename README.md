@@ -6,7 +6,7 @@
 
 # NexusHR
 
-### Human Resource Management System s
+### Human Resource Management System 
 
 **Graduation Project — Palestine Polytechnic University**
 College of Information Technology and Computer Engineering · Department of IT and Computer Science
