@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
@@ -9,6 +10,14 @@ import { In, Repository } from 'typeorm';
 import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { OrgChartService } from '../org-chart/org-chart.service';
 import { Role } from '../../common/enums/enums';
+import { ReportScope } from './interfaces/report-scope.interface';
+import {
+  distinctDepartmentIds,
+  INVALID_DEPARTMENT,
+  parseDepartmentId,
+  resolveReportScope,
+  scopeDenialReason,
+} from './report-scope.helper';
 
 @Injectable()
 export class ReportScopeGuard implements CanActivate {
@@ -22,17 +31,25 @@ export class ReportScopeGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{
       user: { user_id: number; role: Role };
       query: { departmentId?: string };
-      reportScope?: { departmentIds: number[] | null };
+      reportScope?: ReportScope;
     }>();
 
-    const requested = request.query.departmentId
-      ? Number(request.query.departmentId)
-      : null;
+    const parsed = parseDepartmentId(request.query.departmentId);
 
-    if (request.user.role === Role.HR_ADMIN) {
-      request.reportScope = {
-        departmentIds: requested === null ? null : [requested],
-      };
+    if (parsed === INVALID_DEPARTMENT) {
+      throw new BadRequestException(
+        'departmentId must be a positive whole number',
+      );
+    }
+
+    const role = request.user.role;
+
+    if (role === Role.HR_ADMIN) {
+      request.reportScope = resolveReportScope({
+        role,
+        requestedDepartmentId: parsed,
+        allowedDepartmentIds: [],
+      });
       return true;
     }
 
@@ -47,29 +64,28 @@ export class ReportScopeGuard implements CanActivate {
         })
       : [];
 
-    const allowed = [
-      ...new Set(
-        profiles
-          .map((profile) => profile.department_id)
-          .filter((id): id is number => id !== null && id !== undefined),
-      ),
-    ];
+    const allowedDepartmentIds = distinctDepartmentIds(profiles);
 
-    if (allowed.length === 0) {
+    const facts = {
+      role,
+      requestedDepartmentId: parsed,
+      allowedDepartmentIds,
+    };
+
+    const denial = scopeDenialReason(facts);
+
+    if (denial === 'no_team') {
       throw new ForbiddenException(
         'No employees report to you, so no report scope applies to you',
       );
     }
-
-    if (requested !== null && !allowed.includes(requested)) {
+    if (denial === 'department_out_of_scope') {
       throw new ForbiddenException(
         'You can only view reports for departments your team belongs to',
       );
     }
 
-    request.reportScope = {
-      departmentIds: requested === null ? allowed : [requested],
-    };
+    request.reportScope = resolveReportScope(facts);
 
     return true;
   }
