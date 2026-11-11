@@ -6,6 +6,7 @@ import { NotificationEntity } from './notification.entity';
 import { UserEntity } from '../users/user.entity';
 import { EmployeeProfileEntity } from '../employees/employee-profile.entity';
 import { MailModule } from '../mail/mail.module';
+import { RocketChatModule } from '../rocketchat/rocketchat.module';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
@@ -27,6 +28,7 @@ import { EmailListener } from './listeners/email.listener';
     JwtModule.register({}),
     ConfigModule,
     MailModule,
+    RocketChatModule,
   ],
   controllers: [NotificationsController],
   providers: [

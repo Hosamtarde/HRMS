@@ -26,6 +26,7 @@ export class RocketChatService {
   private readonly botToken: string;
   private readonly enabled: boolean;
   private readonly timeoutMs = 5000;
+  private readonly usernames = new Map<string, string>();
 
   constructor(config: ConfigService) {
     this.baseUrl = (config.get<string>('ROCKETCHAT_URL') ?? '').replace(
@@ -63,6 +64,23 @@ export class RocketChatService {
       },
     );
     return result?.user ?? null;
+  }
+
+  async getUsername(chatUserId: string): Promise<string | null> {
+    const cached = this.usernames.get(chatUserId);
+    if (cached) {
+      return cached;
+    }
+
+    const result = await this.request<{ user: { username: string } }>(
+      'GET',
+      `users.info?userId=${encodeURIComponent(chatUserId)}`,
+    );
+    const username = result?.user?.username ?? null;
+    if (username) {
+      this.usernames.set(chatUserId, username);
+    }
+    return username;
   }
 
   async setUserActive(userId: string, active: boolean): Promise<boolean> {
@@ -122,6 +140,17 @@ export class RocketChatService {
       text,
     });
     return result !== null;
+  }
+
+  async sendDirectMessageToUserId(
+    chatUserId: string,
+    text: string,
+  ): Promise<boolean> {
+    const username = await this.getUsername(chatUserId);
+    if (!username) {
+      return false;
+    }
+    return this.sendDirectMessage(username, text);
   }
 
   async sendToChannel(channelName: string, text: string): Promise<boolean> {
