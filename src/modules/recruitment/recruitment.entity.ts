@@ -41,6 +41,9 @@ export class RecruitmentEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   meeting_url!: string | null;
 
+  @Column({ type: 'datetime', nullable: true })
+  reminder_sent_at!: Date | null;
+
   @CreateDateColumn()
   submission_date!: Date;
 }

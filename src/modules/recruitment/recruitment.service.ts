@@ -144,6 +144,7 @@ export class RecruitmentService {
 
     application.interview_at = interviewAt;
     application.meeting_url = meetingUrl;
+    application.reminder_sent_at = null;
     application.application_status = RecruitmentStatus.INTERVIEW_SCHEDULED;
     const saved = await this.recruitmentRepository.save(application);
 

@@ -14,5 +14,6 @@ export const NOTIFICATION_EVENTS = {
   LEAVE_BALANCE_LOW: 'leave.balanceLow',
   APPLICATION_STATUS: 'recruitment.applicationStatus',
   INTERVIEW_SCHEDULED: 'recruitment.interviewScheduled',
+  INTERVIEW_REMINDER: 'recruitment.interviewReminder',
   MANAGER_CHANGED: 'orgChart.managerChanged',
 } as const;
