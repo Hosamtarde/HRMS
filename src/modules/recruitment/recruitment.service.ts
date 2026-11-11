@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { RecruitmentEntity } from './recruitment.entity';
 import { ApplyDto } from './dto/apply.dto';
+import { ScheduleInterviewDto } from './dto/schedule-interview.dto';
 import { RecruitmentStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
@@ -22,16 +24,28 @@ import {
   isTerminalStatus,
   safeUploadName,
 } from './recruitment-rules.helper';
+import {
+  buildMeetingRoomName,
+  buildMeetingUrl,
+  canScheduleInterview,
+  InterviewScheduledEvent,
+  isFutureInterviewTime,
+} from './interview.helper';
 
 @Injectable()
 export class RecruitmentService {
   private readonly logger = new Logger(RecruitmentService.name);
+  private readonly jitsiBaseUrl: string;
 
   constructor(
     @InjectRepository(RecruitmentEntity)
     private readonly recruitmentRepository: Repository<RecruitmentEntity>,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+    config: ConfigService,
+  ) {
+    this.jitsiBaseUrl =
+      config.get<string>('JITSI_BASE_URL') ?? 'https://meet.jit.si';
+  }
 
   async apply(dto: ApplyDto, cvFilePath: string): Promise<RecruitmentEntity> {
     const application = this.recruitmentRepository.create({
@@ -81,6 +95,12 @@ export class RecruitmentService {
       );
     }
 
+    if (status === RecruitmentStatus.INTERVIEW_SCHEDULED) {
+      throw new BadRequestException(
+        'Use the interview scheduling endpoint to move an application to interview_scheduled.',
+      );
+    }
+
     application.application_status = status;
     const saved = await this.recruitmentRepository.save(application);
 
@@ -94,6 +114,52 @@ export class RecruitmentService {
 
     this.logger.log(
       `Application #${id} status changed from ${current} to ${status}`,
+    );
+
+    return saved;
+  }
+
+  async scheduleInterview(
+    id: number,
+    dto: ScheduleInterviewDto,
+  ): Promise<RecruitmentEntity> {
+    const application = await this.findOne(id);
+    const current = application.application_status;
+
+    if (!canScheduleInterview(current)) {
+      throw new BadRequestException(
+        `An application that is ${current} cannot be scheduled for an interview.`,
+      );
+    }
+
+    const interviewAt = new Date(dto.interview_at);
+    if (!isFutureInterviewTime(interviewAt)) {
+      throw new BadRequestException('The interview time must be in the future');
+    }
+
+    const rescheduled = current === RecruitmentStatus.INTERVIEW_SCHEDULED;
+    const meetingUrl =
+      application.meeting_url ??
+      buildMeetingUrl(this.jitsiBaseUrl, buildMeetingRoomName(id));
+
+    application.interview_at = interviewAt;
+    application.meeting_url = meetingUrl;
+    application.application_status = RecruitmentStatus.INTERVIEW_SCHEDULED;
+    const saved = await this.recruitmentRepository.save(application);
+
+    const event: InterviewScheduledEvent = {
+      applicationId: saved.application_id,
+      applicantName: saved.applicant_name,
+      email: saved.email,
+      position: saved.applied_position,
+      interviewAt,
+      meetingUrl,
+      rescheduled,
+    };
+    this.eventEmitter.emit(NOTIFICATION_EVENTS.INTERVIEW_SCHEDULED, event);
+
+    this.logger.log(
+      `Application #${id} interview ${rescheduled ? 'rescheduled' : 'scheduled'} for ${interviewAt.toISOString()}`,
     );
 
     return saved;
