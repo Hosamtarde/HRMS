@@ -77,6 +77,8 @@ export class RocketChatService {
     const result = await this.request<{ channel: RocketChatChannel }>(
       'GET',
       `channels.info?roomName=${encodeURIComponent(name)}`,
+      undefined,
+      true,
     );
     return result?.channel ?? null;
   }
@@ -134,6 +136,7 @@ export class RocketChatService {
     method: 'GET' | 'POST',
     path: string,
     body?: Record<string, unknown>,
+    quietWhenMissing = false,
   ): Promise<T | null> {
     if (!this.enabled) {
       return null;
@@ -156,11 +159,17 @@ export class RocketChatService {
         | null;
 
       if (!response.ok || !payload || payload.success === false) {
-        this.logger.error(
-          `Rocket.Chat ${method} ${path} failed with status ${response.status}${
-            payload?.error ? `: ${payload.error}` : ''
-          }`,
-        );
+        const message = `Rocket.Chat ${method} ${path} failed with status ${response.status}${
+          payload?.error ? `: ${payload.error}` : ''
+        }`;
+        if (
+          quietWhenMissing &&
+          (response.status === 400 || response.status === 404)
+        ) {
+          this.logger.debug(message);
+        } else {
+          this.logger.error(message);
+        }
         return null;
       }
 
