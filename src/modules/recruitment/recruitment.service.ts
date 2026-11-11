@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,7 +14,6 @@ import { RecruitmentStatus } from '../../common/enums/enums';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
-import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -31,6 +31,7 @@ import {
   InterviewScheduledEvent,
   isFutureInterviewTime,
 } from './interview.helper';
+import { isWithinReminderWindow } from './interview-reminder.helper';
 
 @Injectable()
 export class RecruitmentService {
@@ -137,6 +138,7 @@ export class RecruitmentService {
       throw new BadRequestException('The interview time must be in the future');
     }
 
+    const now = new Date();
     const rescheduled = current === RecruitmentStatus.INTERVIEW_SCHEDULED;
     const meetingUrl =
       application.meeting_url ??
@@ -144,7 +146,9 @@ export class RecruitmentService {
 
     application.interview_at = interviewAt;
     application.meeting_url = meetingUrl;
-    application.reminder_sent_at = null;
+    application.reminder_sent_at = isWithinReminderWindow(interviewAt, now)
+      ? now
+      : null;
     application.application_status = RecruitmentStatus.INTERVIEW_SCHEDULED;
     const saved = await this.recruitmentRepository.save(application);
 

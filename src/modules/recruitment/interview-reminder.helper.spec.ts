@@ -1,6 +1,7 @@
 import {
   buildReminderEvent,
   getReminderWindow,
+  isWithinReminderWindow,
   REMINDER_LEAD_MINUTES,
   ReminderSource,
 } from './interview-reminder.helper';
@@ -27,6 +28,32 @@ describe('interview reminder helper', () => {
 
     it('keeps the default lead time at sixty minutes', () => {
       expect(REMINDER_LEAD_MINUTES).toBe(60);
+    });
+  });
+
+  describe('isWithinReminderWindow', () => {
+    it('is true for an interview less than an hour away', () => {
+      expect(
+        isWithinReminderWindow(new Date('2026-11-20T10:40:00.000Z'), now),
+      ).toBe(true);
+    });
+
+    it('is true for an interview exactly an hour away', () => {
+      expect(
+        isWithinReminderWindow(new Date('2026-11-20T11:00:00.000Z'), now),
+      ).toBe(true);
+    });
+
+    it('is false for an interview more than an hour away', () => {
+      expect(
+        isWithinReminderWindow(new Date('2026-11-20T11:01:00.000Z'), now),
+      ).toBe(false);
+    });
+
+    it('uses the lead time that is passed in', () => {
+      expect(
+        isWithinReminderWindow(new Date('2026-11-20T10:40:00.000Z'), now, 15),
+      ).toBe(false);
     });
   });
 

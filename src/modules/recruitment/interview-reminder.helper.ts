@@ -35,6 +35,16 @@ export function getReminderWindow(
   };
 }
 
+export function isWithinReminderWindow(
+  interviewAt: Date,
+  now: Date,
+  leadMinutes: number = REMINDER_LEAD_MINUTES,
+): boolean {
+  return (
+    interviewAt.getTime() <= getReminderWindow(now, leadMinutes).to.getTime()
+  );
+}
+
 export function buildReminderEvent(
   source: ReminderSource,
 ): InterviewReminderEvent | null {
