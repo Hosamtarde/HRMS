@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { Role } from '../../common/enums/enums';
 
@@ -34,6 +35,10 @@ export class UserEntity {
 
   @Column({ default: true })
   status!: boolean;
+
+  @Index('uq_users_chat_user_id', { unique: true })
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  chat_user_id!: string | null;
 
   @CreateDateColumn()
   created_at!: Date;
