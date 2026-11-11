@@ -17,6 +17,7 @@ import { PerformanceListener } from './listeners/performance.listener';
 import { PayrollListener } from './listeners/payroll.listener';
 import { MiscListener } from './listeners/misc.listener';
 import { EmailListener } from './listeners/email.listener';
+import { InterviewListener } from './listeners/interview.listener';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { EmailListener } from './listeners/email.listener';
     PayrollListener,
     MiscListener,
     EmailListener,
+    InterviewListener,
   ],
   exports: [NotificationsService],
 })
