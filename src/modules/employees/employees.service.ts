@@ -29,6 +29,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { Role } from '../../common/enums/enums';
 import { EmployeeCard } from './interfaces/employee-card.interface';
 import { getToday } from '../../common/utils/date.util';
+import { ChatProvisioningService } from '../rocketchat/chat-provisioning.service';
 
 @Injectable()
 export class EmployeesService {
@@ -40,6 +41,7 @@ export class EmployeesService {
     @InjectRepository(EmployeeProfileEntity)
     private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
     private readonly dataSource: DataSource,
+    private readonly chatProvisioning: ChatProvisioningService,
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeProfileEntity> {
@@ -48,7 +50,7 @@ export class EmployeesService {
     });
     if (existing) {
       this.logger.warn(
-        `Employee creation rejected: email already exists — ${dto.email}`,
+        `Employee creation rejected: email already exists \u2014 ${dto.email}`,
       );
       throw new ConflictException('A user with this email already exists');
     }
@@ -81,6 +83,8 @@ export class EmployeesService {
     this.logger.log(
       `Employee created: user #${savedProfile.user_id} (${dto.email}) in department ${dto.department_id}`,
     );
+
+    void this.chatProvisioning.provisionEmployee(savedProfile.user_id);
 
     return savedProfile;
   }
