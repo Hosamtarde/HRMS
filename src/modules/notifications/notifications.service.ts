@@ -12,6 +12,7 @@ import { QueryNotificationsDto } from './dto/query-notifications.dto';
 import { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 import { buildPaginatedResult } from '../../common/helpers/pagination.helper';
 import { NotificationsGateway } from './notifications.gateway';
+import { ChatNotificationService } from '../rocketchat/chat-notification.service';
 
 @Injectable()
 export class NotificationsService {
@@ -21,6 +22,7 @@ export class NotificationsService {
     @InjectRepository(NotificationEntity)
     private readonly notificationsRepository: Repository<NotificationEntity>,
     private readonly gateway: NotificationsGateway,
+    private readonly chatNotifications: ChatNotificationService,
   ) {}
 
   async create(dto: CreateNotificationDto): Promise<NotificationEntity> {
@@ -32,6 +34,7 @@ export class NotificationsService {
     );
 
     this.push([dto.user_id], dto);
+    void this.chatNotifications.deliver([dto]);
 
     return notification;
   }
@@ -52,6 +55,7 @@ export class NotificationsService {
       items.map((item) => item.user_id),
       items[0],
     );
+    void this.chatNotifications.deliver(items);
 
     return rows;
   }

@@ -21,6 +21,7 @@ import { diskStorage } from 'multer';
 import { randomUUID } from 'crypto';
 import { promises as fsp } from 'fs';
 import { UpdateApplicationStatusDto } from './dto/update-status.dto';
+import { ScheduleInterviewDto } from './dto/schedule-interview.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { RecruitmentService } from './recruitment.service';
 import { ApplyDto } from './dto/apply.dto';
@@ -144,6 +145,17 @@ export class RecruitmentController {
     @Body() dto: UpdateApplicationStatusDto,
   ) {
     return this.recruitmentService.updateStatus(id, dto.status);
+  }
+
+  @ApiBearerAuth()
+  @Put(':id/interview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.HR_ADMIN)
+  scheduleInterview(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ScheduleInterviewDto,
+  ) {
+    return this.recruitmentService.scheduleInterview(id, dto);
   }
 
   @ApiBearerAuth()

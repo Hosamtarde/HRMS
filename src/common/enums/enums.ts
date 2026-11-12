@@ -96,6 +96,7 @@ export enum NotificationType {
   LEAVE_BALANCE_LOW = 'leave_balance_low',
   APPLICATION_STATUS = 'application_status',
   MANAGER_CHANGED = 'manager_changed',
+  INTERVIEW_SCHEDULED = 'interview_scheduled',
 }
 
 export enum ReportFormat {

@@ -29,6 +29,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { Role } from '../../common/enums/enums';
 import { EmployeeCard } from './interfaces/employee-card.interface';
 import { getToday } from '../../common/utils/date.util';
+import { ChatProvisioningService } from '../rocketchat/chat-provisioning.service';
 
 @Injectable()
 export class EmployeesService {
@@ -40,6 +41,7 @@ export class EmployeesService {
     @InjectRepository(EmployeeProfileEntity)
     private readonly employeeProfilesRepository: Repository<EmployeeProfileEntity>,
     private readonly dataSource: DataSource,
+    private readonly chatProvisioning: ChatProvisioningService,
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeProfileEntity> {
@@ -48,7 +50,7 @@ export class EmployeesService {
     });
     if (existing) {
       this.logger.warn(
-        `Employee creation rejected: email already exists — ${dto.email}`,
+        `Employee creation rejected: email already exists \u2014 ${dto.email}`,
       );
       throw new ConflictException('A user with this email already exists');
     }
@@ -81,6 +83,8 @@ export class EmployeesService {
     this.logger.log(
       `Employee created: user #${savedProfile.user_id} (${dto.email}) in department ${dto.department_id}`,
     );
+
+    void this.chatProvisioning.provisionEmployee(savedProfile.user_id);
 
     return savedProfile;
   }
@@ -116,6 +120,7 @@ export class EmployeesService {
     dto: UpdateEmployeeDto,
   ): Promise<EmployeeProfileEntity> {
     const profile = await this.findOne(userId);
+    const previousDepartmentId = profile.department_id;
 
     if (dto.first_name || dto.last_name || dto.phone_number) {
       await this.usersRepository.update(userId, {
@@ -125,21 +130,33 @@ export class EmployeesService {
       });
     }
 
-    Object.assign(profile, {
-      department_id: dto.department_id ?? profile.department_id,
-      position: dto.position ?? profile.position,
-      hire_date: dto.hire_date ?? profile.hire_date,
-      basic_salary: dto.basic_salary ?? profile.basic_salary,
-      employment_type: dto.employment_type ?? profile.employment_type,
-    });
+    await this.employeeProfilesRepository.update(
+      { user_id: userId },
+      {
+        department_id: dto.department_id ?? profile.department_id,
+        position: dto.position ?? profile.position,
+        hire_date: dto.hire_date ?? profile.hire_date,
+        basic_salary: dto.basic_salary ?? profile.basic_salary,
+        employment_type: dto.employment_type ?? profile.employment_type,
+      },
+    );
 
-    return this.employeeProfilesRepository.save(profile);
+    if (
+      dto.department_id !== undefined &&
+      dto.department_id !== previousDepartmentId
+    ) {
+      void this.chatProvisioning.syncDepartment(userId, previousDepartmentId);
+    }
+
+    return this.findOne(userId);
   }
 
   async remove(userId: number): Promise<void> {
     const profile = await this.findOne(userId);
     await this.usersRepository.update(profile.user_id, { status: false });
     this.logger.log(`Employee #${profile.user_id} deactivated (soft delete)`);
+
+    void this.chatProvisioning.deactivateEmployee(profile.user_id);
   }
 
   async findCard(userId: number): Promise<EmployeeCard> {

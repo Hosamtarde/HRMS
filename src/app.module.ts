@@ -25,6 +25,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ReportsModule } from './modules/reports/reports.module';
 import { OrgChartModule } from './modules/org-chart/org-chart.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { RocketChatModule } from './modules/rocketchat/rocketchat.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     NotificationsModule,
     ReportsModule,
     OrgChartModule,
+    RocketChatModule,
   ],
   controllers: [AppController],
   providers: [

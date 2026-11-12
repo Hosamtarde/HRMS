@@ -35,6 +35,15 @@ export class RecruitmentEntity {
   })
   application_status!: RecruitmentStatus;
 
+  @Column({ type: 'datetime', nullable: true })
+  interview_at!: Date | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  meeting_url!: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  reminder_sent_at!: Date | null;
+
   @CreateDateColumn()
   submission_date!: Date;
 }
